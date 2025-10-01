@@ -3,7 +3,10 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - EV_Interactable
+  - EV_Item
+  - EV_Enemy
   layers:
   - Default
   - TransparentFX
