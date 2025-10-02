@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -7,7 +8,7 @@ public class EagleVisionManager : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Volume postProcessVolume;
-    [SerializeField] private Camera highlightCamera;
+    [SerializeField] private Camera highlightCamera; // opsional, hanya untuk efek dunia
     [SerializeField] private GameObject pulseWavePrefab;
 
     [Header("Settings")]
@@ -18,116 +19,106 @@ public class EagleVisionManager : MonoBehaviour
 
     [Header("Duration Settings")]
     [SerializeField] private float activeDuration = 5f;
+    private float activeTimer;
+
+    [Header("Enemy Memory")]
+    [SerializeField] private int maxTrackedEnemies = 5;
+    private List<IHighlightable> scannedEnemies = new List<IHighlightable>();
 
     [Header("Object Colors")]
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
     [SerializeField] private Color itemColor = new Color(3f, 3f, 0f);
     [SerializeField] private Color interactableColor = new Color(0f, 3f, 3f);
 
-    [Header("Layer Settings")]
-    [SerializeField] private string highlightLayerName = "EagleVisionHighlight";
-    private int highlightLayer;
-
     [Header("Visual Polish")]
     [SerializeField] private float vignetteIntensity = 0.45f;
     [SerializeField] private float bloomIntensity = 5f;
 
     // State
-    private bool isActive = false;
-    private float activeTimer = 0f;
-    private float currentPulseRadius = 0f;
-    private bool isPulsing = false;
-    
+    private bool isActive;
+    private bool isPulsing;
+    private float currentPulseRadius;
+
     // Pulse visual
     private GameObject currentPulseWave;
-    private Renderer pulseRenderer;
     private Material pulseMaterial;
 
     // Post-processing
     private ColorAdjustments colorAdjustments;
     private Vignette vignette;
     private Bloom bloom;
-    private float targetSaturation = 0f;
-    private float currentSaturation = 0f;
-    private float targetVignetteIntensity = 0f;
-    private float currentVignetteIntensity = 0f;
-    private float targetBloomIntensity = 0f;
-    private float currentBloomIntensity = 0f;
+
+    private float targetSaturation;
+    private float currentSaturation;
+    private float targetVignetteIntensity;
+    private float currentVignetteIntensity;
+    private float targetBloomIntensity;
+    private float currentBloomIntensity;
 
     void Start()
     {
-        highlightLayer = LayerMask.NameToLayer(highlightLayerName);
-        if (highlightLayer == -1)
-            Debug.LogError($"Layer '{highlightLayerName}' not found!");
+        // Post-processing setup
+        if (postProcessVolume != null)
+        {
+            if (postProcessVolume.profile.TryGet(out colorAdjustments))
+            {
+                colorAdjustments.saturation.overrideState = true;
+                colorAdjustments.saturation.value = 0f;
+            }
 
-        if (postProcessVolume != null && postProcessVolume.profile.TryGet(out colorAdjustments))
-        {
-            colorAdjustments.saturation.overrideState = true;
-            colorAdjustments.saturation.value = 0f;
-            currentSaturation = 0f;
-        }
-        else
-        {
-            Debug.LogError("Color Adjustments not found!");
-        }
-        
-        // Get Vignette
-        if (postProcessVolume != null && postProcessVolume.profile.TryGet(out vignette))
-        {
-            vignette.intensity.overrideState = true;
-            vignette.intensity.value = 0f;
-            currentVignetteIntensity = 0f;
-        }
-        
-        // Get Bloom
-        if (postProcessVolume != null && postProcessVolume.profile.TryGet(out bloom))
-        {
-            bloom.intensity.overrideState = true;
-            bloom.intensity.value = 0f;
-            currentBloomIntensity = 0f;
+            if (postProcessVolume.profile.TryGet(out vignette))
+            {
+                vignette.intensity.overrideState = true;
+                vignette.intensity.value = 0f;
+            }
+
+            if (postProcessVolume.profile.TryGet(out bloom))
+            {
+                bloom.intensity.overrideState = true;
+                bloom.intensity.value = 0f;
+            }
         }
 
+        // Highlight camera hanya aktif kalau kamu mau efek tambahan
         if (highlightCamera != null)
             highlightCamera.enabled = false;
     }
 
     void Update()
     {
+        // toggle EV
         if (Input.GetKeyDown(activationKey) && !isActive)
-        {
             ActivateEagleVision();
-        }
 
+        // smooth post-process transition
         if (colorAdjustments != null)
         {
             currentSaturation = Mathf.Lerp(currentSaturation, targetSaturation, Time.deltaTime * transitionSpeed);
             colorAdjustments.saturation.value = currentSaturation;
         }
-        
-        // Smooth transition for vignette
+
         if (vignette != null)
         {
             currentVignetteIntensity = Mathf.Lerp(currentVignetteIntensity, targetVignetteIntensity, Time.deltaTime * transitionSpeed);
             vignette.intensity.value = currentVignetteIntensity;
         }
-        
-        // Smooth transition for bloom
+
         if (bloom != null)
         {
             currentBloomIntensity = Mathf.Lerp(currentBloomIntensity, targetBloomIntensity, Time.deltaTime * transitionSpeed);
             bloom.intensity.value = currentBloomIntensity;
         }
 
+        // pulse
         if (isPulsing)
             UpdatePulse();
 
+        // EV timer
         if (isActive)
         {
             activeTimer -= Time.deltaTime;
             if (activeTimer <= 0f)
-            {
                 DeactivateEagleVision();
-            }
         }
     }
 
@@ -136,6 +127,7 @@ public class EagleVisionManager : MonoBehaviour
         isActive = true;
         targetSaturation = -100f;
         targetVignetteIntensity = vignetteIntensity;
+        targetBloomIntensity = bloomIntensity;
 
         if (highlightCamera != null)
             highlightCamera.enabled = true;
@@ -144,12 +136,12 @@ public class EagleVisionManager : MonoBehaviour
         activeTimer = activeDuration;
     }
 
-
     void DeactivateEagleVision()
     {
         isActive = false;
         targetSaturation = 0f;
         targetVignetteIntensity = 0f;
+        targetBloomIntensity = 0f;
 
         if (highlightCamera != null)
             highlightCamera.enabled = false;
@@ -160,27 +152,19 @@ public class EagleVisionManager : MonoBehaviour
         currentPulseRadius = 0f;
 
         if (currentPulseWave != null)
-        {
             Destroy(currentPulseWave);
-            currentPulseWave = null;
-        }
     }
-
 
     void StartPulse()
     {
         isPulsing = true;
         currentPulseRadius = 0f;
-        
+
         if (pulseWavePrefab != null)
         {
             currentPulseWave = Instantiate(pulseWavePrefab, transform.position, Quaternion.identity);
-            
-            // Set to highlight layer so it bypasses grayscale
-            currentPulseWave.layer = highlightLayer;
-            
-            pulseRenderer = currentPulseWave.GetComponent<Renderer>();
-            
+
+            var pulseRenderer = currentPulseWave.GetComponent<Renderer>();
             if (pulseRenderer != null)
             {
                 pulseMaterial = new Material(pulseRenderer.sharedMaterial);
@@ -192,12 +176,12 @@ public class EagleVisionManager : MonoBehaviour
     void UpdatePulse()
     {
         currentPulseRadius += pulseSpeed * Time.deltaTime;
-        
+
         if (currentPulseWave != null)
         {
             float scale = currentPulseRadius * 2f;
             currentPulseWave.transform.localScale = Vector3.one * scale;
-            
+
             if (pulseMaterial != null)
             {
                 float alpha = 1f - (currentPulseRadius / pulseMaxRadius);
@@ -206,25 +190,19 @@ public class EagleVisionManager : MonoBehaviour
                 pulseMaterial.SetColor("_BaseColor", currentColor);
             }
         }
-        
+
         DetectObjectsInRadius(currentPulseRadius);
 
         if (currentPulseRadius >= pulseMaxRadius)
         {
             isPulsing = false;
             currentPulseRadius = 0f;
-            
+
             if (currentPulseWave != null)
-            {
                 Destroy(currentPulseWave);
-                currentPulseWave = null;
-            }
-            
+
             if (pulseMaterial != null)
-            {
                 Destroy(pulseMaterial);
-                pulseMaterial = null;
-            }
         }
     }
 
@@ -238,16 +216,36 @@ public class EagleVisionManager : MonoBehaviour
                 continue;
 
             IHighlightable highlightable = col.GetComponent<IHighlightable>();
-
             if (highlightable == null)
                 highlightable = col.gameObject.AddComponent<MaterialHighlighter>();
 
             if (col.CompareTag("EV_Enemy"))
-                highlightable.Highlight(enemyColor, highlightLayer);
+            {
+                if (!scannedEnemies.Contains(highlightable))
+                {
+                    if (scannedEnemies.Count >= maxTrackedEnemies)
+                    {
+                        scannedEnemies[0].ClearHighlight();
+                        scannedEnemies.RemoveAt(0);
+                    }
+                    scannedEnemies.Add(highlightable);
+                }
+
+                // Enemy: permanent highlight, NO layer change
+                (highlightable as MaterialHighlighter)?.Highlight(enemyColor, true, 0);
+            }
             else if (col.CompareTag("EV_Item"))
+            {
+                // Temporary: use highlight layer
+                int highlightLayer = LayerMask.NameToLayer("EagleVisionHighlight");
                 highlightable.Highlight(itemColor, highlightLayer);
+            }
             else if (col.CompareTag("EV_Interactable"))
+            {
+                // Temporary: use highlight layer
+                int highlightLayer = LayerMask.NameToLayer("EagleVisionHighlight");
                 highlightable.Highlight(interactableColor, highlightLayer);
+            }
         }
     }
 
@@ -255,7 +253,19 @@ public class EagleVisionManager : MonoBehaviour
     {
         var highlightables = FindObjectsOfType<MonoBehaviour>(true).OfType<IHighlightable>();
         foreach (var h in highlightables)
-            h.ClearHighlight();
+        {
+            var go = (h as MonoBehaviour).gameObject;
+
+            if (go.CompareTag("EV_Enemy"))
+            {
+                // biarkan enemy tetap glowing
+                continue;
+            }
+            else
+            {
+                h.ClearHighlight();
+            }
+        }
     }
 
     void OnDrawGizmos()

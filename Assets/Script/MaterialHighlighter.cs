@@ -1,61 +1,84 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Renderer))]
 public class MaterialHighlighter : MonoBehaviour, IHighlightable
 {
-    private Renderer objectRenderer;
+    private Renderer rend;
     private Material originalMaterial;
-    private Material highlightMaterial;
     private int originalLayer;
 
+    [Header("Highlight Material (Temporary)")]
+    public Material highlightMaterial;
+
+    [Header("Highlight Material (Permanent for Enemy)")]
+    public Material permanentEnemyMaterial;
+
     public bool IsHighlighted { get; private set; }
+    public bool IsScanned { get; private set; }
 
     void Awake()
     {
-        objectRenderer = GetComponent<Renderer>();
-        if (objectRenderer != null)
-        {
-            originalMaterial = objectRenderer.material;
-        }
+        rend = GetComponent<Renderer>();
+        if (rend != null)
+            originalMaterial = rend.sharedMaterial;
+        
+        // Store original layer
         originalLayer = gameObject.layer;
     }
 
+    // Interface implementation
     public void Highlight(Color color, int highlightLayer)
     {
-        if (IsHighlighted) return;
+        Highlight(color, false, highlightLayer);
+    }
 
-        gameObject.layer = highlightLayer;
+    // Overload dengan layer control
+    public void Highlight(Color color, bool permanent = false, int highlightLayer = 0)
+    {
+        if (rend == null) return;
 
-        // Buat Unlit material
-        highlightMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-        highlightMaterial.SetColor("_BaseColor", color);
-
-        // Tambahin emission supaya Bloom bisa nangkep
-        if (highlightMaterial.HasProperty("_EmissionColor"))
+        if (permanent)
         {
-            highlightMaterial.EnableKeyword("_EMISSION");
-            highlightMaterial.SetColor("_EmissionColor", color * 10f); // multiplier biar HDR terang
+            // Enemy → glowing permanen
+            if (permanentEnemyMaterial != null)
+            {
+                rend.material = permanentEnemyMaterial;
+                rend.material.SetColor("_EmissionColor", color);
+                IsScanned = true;
+                
+                // PENTING: Kembalikan ke layer original
+                // Jadi Main Camera bisa render enemy setelah EV mati
+                gameObject.layer = originalLayer;
+            }
+        }
+        else
+        {
+            // Item/interactable → glowing sementara
+            // Pindah ke highlight layer (bypass grayscale saat EV aktif)
+            gameObject.layer = highlightLayer;
+            
+            if (highlightMaterial != null)
+            {
+                rend.material = highlightMaterial;
+                rend.material.SetColor("_EmissionColor", color);
+            }
         }
 
-        objectRenderer.material = highlightMaterial;
         IsHighlighted = true;
     }
 
-
     public void ClearHighlight()
     {
+        if (IsScanned)
+        {
+            // Enemy sudah discan → tetap glowing, jangan clear
+            return;
+        }
+
+        // Restore layer
         gameObject.layer = originalLayer;
-
-        if (objectRenderer != null && originalMaterial != null)
-        {
-            objectRenderer.material = originalMaterial;
-        }
-
-        if (highlightMaterial != null)
-        {
-            Destroy(highlightMaterial);
-            highlightMaterial = null;
-        }
+        
+        if (rend != null && originalMaterial != null)
+            rend.material = originalMaterial;
 
         IsHighlighted = false;
     }
