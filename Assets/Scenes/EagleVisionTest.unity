@@ -519,6 +519,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   postProcessVolume: {fileID: 832575518}
   highlightCamera: {fileID: 621147298}
+  pulseWavePrefab: {fileID: 1011761818196902752, guid: 156cc73cf55979240a3fded4394a3dd2,
+    type: 3}
   activationKey: 118
   transitionSpeed: 5
   pulseSpeed: 10

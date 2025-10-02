@@ -8,7 +8,7 @@ public class EagleVisionManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private Volume postProcessVolume;
     [SerializeField] private Camera highlightCamera;
-    [SerializeField] private GameObject pulseWavePrefab; // NEW: Prefab untuk pulse visual
+    [SerializeField] private GameObject pulseWavePrefab;
 
     [Header("Settings")]
     [SerializeField] private KeyCode activationKey = KeyCode.V;
@@ -28,6 +28,10 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private string highlightLayerName = "EagleVisionHighlight";
     private int highlightLayer;
 
+    [Header("Visual Polish")]
+    [SerializeField] private float vignetteIntensity = 0.45f;
+    [SerializeField] private float bloomIntensity = 5f;
+
     // State
     private bool isActive = false;
     private float activeTimer = 0f;
@@ -41,8 +45,14 @@ public class EagleVisionManager : MonoBehaviour
 
     // Post-processing
     private ColorAdjustments colorAdjustments;
+    private Vignette vignette;
+    private Bloom bloom;
     private float targetSaturation = 0f;
     private float currentSaturation = 0f;
+    private float targetVignetteIntensity = 0f;
+    private float currentVignetteIntensity = 0f;
+    private float targetBloomIntensity = 0f;
+    private float currentBloomIntensity = 0f;
 
     void Start()
     {
@@ -60,6 +70,22 @@ public class EagleVisionManager : MonoBehaviour
         {
             Debug.LogError("Color Adjustments not found!");
         }
+        
+        // Get Vignette
+        if (postProcessVolume != null && postProcessVolume.profile.TryGet(out vignette))
+        {
+            vignette.intensity.overrideState = true;
+            vignette.intensity.value = 0f;
+            currentVignetteIntensity = 0f;
+        }
+        
+        // Get Bloom
+        if (postProcessVolume != null && postProcessVolume.profile.TryGet(out bloom))
+        {
+            bloom.intensity.overrideState = true;
+            bloom.intensity.value = 0f;
+            currentBloomIntensity = 0f;
+        }
 
         if (highlightCamera != null)
             highlightCamera.enabled = false;
@@ -76,6 +102,20 @@ public class EagleVisionManager : MonoBehaviour
         {
             currentSaturation = Mathf.Lerp(currentSaturation, targetSaturation, Time.deltaTime * transitionSpeed);
             colorAdjustments.saturation.value = currentSaturation;
+        }
+        
+        // Smooth transition for vignette
+        if (vignette != null)
+        {
+            currentVignetteIntensity = Mathf.Lerp(currentVignetteIntensity, targetVignetteIntensity, Time.deltaTime * transitionSpeed);
+            vignette.intensity.value = currentVignetteIntensity;
+        }
+        
+        // Smooth transition for bloom
+        if (bloom != null)
+        {
+            currentBloomIntensity = Mathf.Lerp(currentBloomIntensity, targetBloomIntensity, Time.deltaTime * transitionSpeed);
+            bloom.intensity.value = currentBloomIntensity;
         }
 
         if (isPulsing)
@@ -95,24 +135,30 @@ public class EagleVisionManager : MonoBehaviour
     {
         isActive = true;
         targetSaturation = -100f;
-        if (highlightCamera != null) highlightCamera.enabled = true;
+        targetVignetteIntensity = vignetteIntensity;
+
+        if (highlightCamera != null)
+            highlightCamera.enabled = true;
 
         StartPulse();
         activeTimer = activeDuration;
     }
 
+
     void DeactivateEagleVision()
     {
         isActive = false;
         targetSaturation = 0f;
-        if (highlightCamera != null) highlightCamera.enabled = false;
+        targetVignetteIntensity = 0f;
+
+        if (highlightCamera != null)
+            highlightCamera.enabled = false;
 
         ClearAllHighlights();
-        
+
         isPulsing = false;
         currentPulseRadius = 0f;
-        
-        // Destroy pulse visual if still exists
+
         if (currentPulseWave != null)
         {
             Destroy(currentPulseWave);
@@ -120,12 +166,12 @@ public class EagleVisionManager : MonoBehaviour
         }
     }
 
+
     void StartPulse()
     {
         isPulsing = true;
         currentPulseRadius = 0f;
         
-        // Spawn pulse wave visual
         if (pulseWavePrefab != null)
         {
             currentPulseWave = Instantiate(pulseWavePrefab, transform.position, Quaternion.identity);
@@ -137,7 +183,6 @@ public class EagleVisionManager : MonoBehaviour
             
             if (pulseRenderer != null)
             {
-                // Create instance material to avoid affecting prefab
                 pulseMaterial = new Material(pulseRenderer.sharedMaterial);
                 pulseRenderer.material = pulseMaterial;
             }
@@ -148,33 +193,27 @@ public class EagleVisionManager : MonoBehaviour
     {
         currentPulseRadius += pulseSpeed * Time.deltaTime;
         
-        // Update pulse visual
         if (currentPulseWave != null)
         {
-            // Scale sphere to match radius
-            float scale = currentPulseRadius * 2f; // diameter = radius * 2
+            float scale = currentPulseRadius * 2f;
             currentPulseWave.transform.localScale = Vector3.one * scale;
             
-            // Fade out as it expands
             if (pulseMaterial != null)
             {
                 float alpha = 1f - (currentPulseRadius / pulseMaxRadius);
                 Color currentColor = pulseMaterial.GetColor("_BaseColor");
-                currentColor.a = alpha * 0.5f; // Max alpha 0.5 for subtle effect
+                currentColor.a = alpha * 0.5f;
                 pulseMaterial.SetColor("_BaseColor", currentColor);
             }
         }
         
-        // Detect objects
         DetectObjectsInRadius(currentPulseRadius);
 
-        // Stop pulse when max radius reached
         if (currentPulseRadius >= pulseMaxRadius)
         {
             isPulsing = false;
             currentPulseRadius = 0f;
             
-            // Destroy pulse visual
             if (currentPulseWave != null)
             {
                 Destroy(currentPulseWave);

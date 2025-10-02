@@ -26,12 +26,21 @@ public class MaterialHighlighter : MonoBehaviour, IHighlightable
 
         gameObject.layer = highlightLayer;
 
+        // Buat Unlit material
         highlightMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-        highlightMaterial.SetColor("_BaseColor", color * 5f); // emissive lebih terang
+        highlightMaterial.SetColor("_BaseColor", color);
+
+        // Tambahin emission supaya Bloom bisa nangkep
+        if (highlightMaterial.HasProperty("_EmissionColor"))
+        {
+            highlightMaterial.EnableKeyword("_EMISSION");
+            highlightMaterial.SetColor("_EmissionColor", color * 10f); // multiplier biar HDR terang
+        }
 
         objectRenderer.material = highlightMaterial;
         IsHighlighted = true;
     }
+
 
     public void ClearHighlight()
     {
