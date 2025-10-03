@@ -152,16 +152,28 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
+        // Item & Interactable: start fade timer
         var items = FindObjectsOfType<ItemTarget>();
         foreach (var item in items)
         {
             item.StartFadeTimer();
+            item.RestoreLayer(); // Kembalikan layer agar Main Camera render
         }
 
         var interactables = FindObjectsOfType<InteractableTarget>();
         foreach (var interactable in interactables)
         {
             interactable.StartFadeTimer();
+            interactable.RestoreLayer(); // Kembalikan layer agar Main Camera render
+        }
+
+        // Enemy: tetap highlight tapi layer dikembalikan
+        foreach (var enemy in scannedEnemies)
+        {
+            if (enemy != null)
+            {
+                enemy.KeepHighlightButRestoreLayer();
+            }
         }
 
         isPulsing = false;

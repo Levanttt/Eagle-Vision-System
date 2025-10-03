@@ -16,14 +16,12 @@ public class EnemyTarget : EagleVisionTarget
 
     void Update()
     {
-        // Cek jarak dari player jika sudah discan dan highlight aktif
         if (isScanned && permanentHighlight && playerTransform != null)
         {
             float distance = Vector3.Distance(transform.position, playerTransform.position);
             
             if (distance > maxDistanceFromPlayer)
             {
-                // Terlalu jauh, matikan highlight
                 ResetToDefault();
                 permanentHighlight = false;
             }
@@ -33,17 +31,22 @@ public class EnemyTarget : EagleVisionTarget
     public override void Scan(Color color, int highlightLayer)
     {
         base.Scan(color, highlightLayer);
-        permanentHighlight = true; // Enemy tetap menyala
+        permanentHighlight = true;
     }
 
-    // Dipanggil saat enemy mati/dibunuh
+    // Method baru khusus enemy: tetap highlight tapi layer kembali normal
+    public void KeepHighlightButRestoreLayer()
+    {
+        // Material tetap highlight, tapi layer kembali ke Default
+        // Jadi Main Camera bisa render meski material masih glowing
+        RestoreLayer();
+    }
+
     public void OnKilled()
     {
         ResetToDefault();
         permanentHighlight = false;
         isScanned = false;
-        
-        // Opsional: disable component atau destroy object
         enabled = false;
     }
 }

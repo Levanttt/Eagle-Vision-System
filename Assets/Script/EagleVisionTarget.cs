@@ -42,6 +42,12 @@ public abstract class EagleVisionTarget : MonoBehaviour
             rend.material.SetColor("_BaseColor", color);
     }
 
+    // Method baru: kembalikan layer tanpa reset material
+    public virtual void RestoreLayer()
+    {
+        gameObject.layer = originalLayer;
+    }
+
     public virtual void ResetToDefault()
     {
         if (rend != null && defaultMaterial != null)

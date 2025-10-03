@@ -391,6 +391,7 @@ GameObject:
   - component: {fileID: 470252018}
   - component: {fileID: 470252017}
   - component: {fileID: 470252016}
+  - component: {fileID: 470252020}
   m_Layer: 0
   m_Name: Item_Test
   m_TagString: EV_Item
@@ -484,6 +485,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &470252020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 470252015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a78048a56ca86534ea843feb48559851, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
+  highlightMaterial: {fileID: 2100000, guid: 85acab803b2e5db4fad5d5452d0648d2, type: 2}
+  highlightDurationAfterEV: 3
 --- !u!1 &488904914
 GameObject:
   m_ObjectHideFlags: 0
@@ -523,13 +539,14 @@ MonoBehaviour:
     type: 3}
   activationKey: 118
   transitionSpeed: 5
-  pulseSpeed: 10
+  pulseSpeed: 25
   pulseMaxRadius: 30
   activeDuration: 5
   maxTrackedEnemies: 5
   enemyColor: {r: 1, g: 0, b: 0, a: 1}
   itemColor: {r: 1, g: 0.9583334, b: 0, a: 1}
   interactableColor: {r: 0, g: 0.22388077, b: 1, a: 1}
+  highlightLayerName: EagleVisionHighlight
   vignetteIntensity: 0.45
   bloomIntensity: 5
 --- !u!143 &488904916
@@ -844,6 +861,7 @@ GameObject:
   - component: {fileID: 777755903}
   - component: {fileID: 777755902}
   - component: {fileID: 777755901}
+  - component: {fileID: 777755905}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: EV_Enemy
@@ -937,6 +955,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &777755905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777755900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8c074b64c07d414e8879f13c111a95f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
+  highlightMaterial: {fileID: 2100000, guid: 137740ae63b0afe44a2f5d460b4e816d, type: 2}
+  maxDistanceFromPlayer: 50
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -998,6 +1031,7 @@ GameObject:
   - component: {fileID: 1003296786}
   - component: {fileID: 1003296785}
   - component: {fileID: 1003296784}
+  - component: {fileID: 1003296788}
   m_Layer: 0
   m_Name: Interactable_Test
   m_TagString: EV_Interactable
@@ -1093,6 +1127,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1003296788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1003296783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103a12c5e9cb67b46913cc1db714f563, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
+  highlightMaterial: {fileID: 2100000, guid: 7bfa10f751ddaf8458739583fc2f5673, type: 2}
+  highlightDurationAfterEV: 3
 --- !u!1 &1228201072
 GameObject:
   m_ObjectHideFlags: 0
