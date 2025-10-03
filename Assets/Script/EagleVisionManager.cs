@@ -24,6 +24,10 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private int maxTrackedEnemies = 5;
     private List<EnemyTarget> scannedEnemies = new List<EnemyTarget>();
 
+    [Header("Item Memory")] 
+    [SerializeField] private int maxTrackedItems = 10;
+    private List<ItemTarget> scannedItems = new List<ItemTarget>(); 
+
     [Header("Object Colors")]
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
     [SerializeField] private Color itemColor = new Color(3f, 3f, 0f);
@@ -130,11 +134,21 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
+        // Auto-highlight scanned enemies
         foreach (var enemy in scannedEnemies)
         {
             if (enemy != null)
             {
                 enemy.Scan(enemyColor, highlightLayer);
+            }
+        }
+
+        // Auto-highlight scanned items (NEW)
+        foreach (var item in scannedItems)
+        {
+            if (item != null)
+            {
+                item.Scan(itemColor, highlightLayer);
             }
         }
 
@@ -152,22 +166,24 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // Item & Interactable: start fade timer
-        var items = FindObjectsOfType<ItemTarget>();
-        foreach (var item in items)
+        // Item: permanent highlight, restore layer
+        foreach (var item in scannedItems)
         {
-            item.StartFadeTimer();
-            item.RestoreLayer(); // Kembalikan layer agar Main Camera render
+            if (item != null)
+            {
+                item.KeepHighlightButRestoreLayer();
+            }
         }
 
+        // Interactable: fade timer
         var interactables = FindObjectsOfType<InteractableTarget>();
         foreach (var interactable in interactables)
         {
             interactable.StartFadeTimer();
-            interactable.RestoreLayer(); // Kembalikan layer agar Main Camera render
+            interactable.RestoreLayer();
         }
 
-        // Enemy: tetap highlight tapi layer dikembalikan
+        // Enemy: permanent highlight, restore layer
         foreach (var enemy in scannedEnemies)
         {
             if (enemy != null)
@@ -267,7 +283,19 @@ public class EagleVisionManager : MonoBehaviour
                 if (item == null)
                     item = col.gameObject.AddComponent<ItemTarget>();
 
-                item.Scan(itemColor, highlightLayer);
+                if (!item.IsScanned) // NEW: Cek apakah sudah discan
+                {
+                    item.Scan(itemColor, highlightLayer);
+                    
+                    if (!scannedItems.Contains(item))
+                    {
+                        if (scannedItems.Count >= maxTrackedItems)
+                        {
+                            scannedItems.RemoveAt(0);
+                        }
+                        scannedItems.Add(item);
+                    }
+                }
             }
             else if (col.CompareTag("EV_Interactable"))
             {
