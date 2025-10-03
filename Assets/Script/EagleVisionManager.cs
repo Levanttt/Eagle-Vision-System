@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -23,7 +22,7 @@ public class EagleVisionManager : MonoBehaviour
 
     [Header("Enemy Memory")]
     [SerializeField] private int maxTrackedEnemies = 5;
-    private List<MaterialHighlighter> scannedEnemies = new List<MaterialHighlighter>();
+    private List<EnemyTarget> scannedEnemies = new List<EnemyTarget>();
 
     [Header("Object Colors")]
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
@@ -38,16 +37,13 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private float vignetteIntensity = 0.45f;
     [SerializeField] private float bloomIntensity = 5f;
 
-    // State
     private bool isActive;
     private bool isPulsing;
     private float currentPulseRadius;
 
-    // Pulse visual
     private GameObject currentPulseWave;
     private Material pulseMaterial;
 
-    // Post-processing
     private ColorAdjustments colorAdjustments;
     private Vignette vignette;
     private Bloom bloom;
@@ -61,12 +57,10 @@ public class EagleVisionManager : MonoBehaviour
 
     void Start()
     {
-        // Get highlight layer
         highlightLayer = LayerMask.NameToLayer(highlightLayerName);
         if (highlightLayer == -1)
             Debug.LogError($"Layer '{highlightLayerName}' not found!");
 
-        // Post-processing setup
         if (postProcessVolume != null)
         {
             if (postProcessVolume.profile.TryGet(out colorAdjustments))
@@ -136,12 +130,11 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
-        // Auto-highlight scanned enemies
         foreach (var enemy in scannedEnemies)
         {
             if (enemy != null)
             {
-                enemy.Highlight(enemyColor, highlightLayer);
+                enemy.Scan(enemyColor, highlightLayer);
             }
         }
 
@@ -159,7 +152,17 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        ClearAllHighlights();
+        var items = FindObjectsOfType<ItemTarget>();
+        foreach (var item in items)
+        {
+            item.StartFadeTimer();
+        }
+
+        var interactables = FindObjectsOfType<InteractableTarget>();
+        foreach (var interactable in interactables)
+        {
+            interactable.StartFadeTimer();
+        }
 
         isPulsing = false;
         currentPulseRadius = 0f;
@@ -176,8 +179,6 @@ public class EagleVisionManager : MonoBehaviour
         if (pulseWavePrefab != null)
         {
             currentPulseWave = Instantiate(pulseWavePrefab, transform.position, Quaternion.identity);
-            
-            // Pulse wave juga di highlight layer
             currentPulseWave.layer = highlightLayer;
 
             var pulseRenderer = currentPulseWave.GetComponent<Renderer>();
@@ -228,48 +229,42 @@ public class EagleVisionManager : MonoBehaviour
 
         foreach (Collider col in hitColliders)
         {
-            if (!(col.CompareTag("EV_Enemy") || col.CompareTag("EV_Item") || col.CompareTag("EV_Interactable")))
-                continue;
-
-            MaterialHighlighter highlightable = col.GetComponent<MaterialHighlighter>();
-            if (highlightable == null)
-                highlightable = col.gameObject.AddComponent<MaterialHighlighter>();
-
             if (col.CompareTag("EV_Enemy"))
             {
-                highlightable.Highlight(enemyColor, highlightLayer);
-                
-                if (!highlightable.IsScanned)
+                EnemyTarget enemy = col.GetComponent<EnemyTarget>();
+                if (enemy == null)
+                    enemy = col.gameObject.AddComponent<EnemyTarget>();
+
+                if (!enemy.IsScanned)
                 {
-                    highlightable.MarkAsScanned();
+                    enemy.Scan(enemyColor, highlightLayer);
                     
-                    if (!scannedEnemies.Contains(highlightable))
+                    if (!scannedEnemies.Contains(enemy))
                     {
                         if (scannedEnemies.Count >= maxTrackedEnemies)
                         {
                             scannedEnemies.RemoveAt(0);
                         }
-                        scannedEnemies.Add(highlightable);
+                        scannedEnemies.Add(enemy);
                     }
                 }
             }
             else if (col.CompareTag("EV_Item"))
             {
-                highlightable.Highlight(itemColor, highlightLayer);
+                ItemTarget item = col.GetComponent<ItemTarget>();
+                if (item == null)
+                    item = col.gameObject.AddComponent<ItemTarget>();
+
+                item.Scan(itemColor, highlightLayer);
             }
             else if (col.CompareTag("EV_Interactable"))
             {
-                highlightable.Highlight(interactableColor, highlightLayer);
-            }
-        }
-    }
+                InteractableTarget interactable = col.GetComponent<InteractableTarget>();
+                if (interactable == null)
+                    interactable = col.gameObject.AddComponent<InteractableTarget>();
 
-    void ClearAllHighlights()
-    {
-        var highlightables = FindObjectsOfType<MaterialHighlighter>();
-        foreach (var h in highlightables)
-        {
-            h.ClearHighlight();
+                interactable.Scan(interactableColor, highlightLayer);
+            }
         }
     }
 
