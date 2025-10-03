@@ -8,7 +8,7 @@ public class EagleVisionManager : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Volume postProcessVolume;
-    [SerializeField] private Camera highlightCamera; // opsional, hanya untuk efek dunia
+    [SerializeField] private Camera highlightCamera;
     [SerializeField] private GameObject pulseWavePrefab;
 
     [Header("Settings")]
@@ -23,12 +23,16 @@ public class EagleVisionManager : MonoBehaviour
 
     [Header("Enemy Memory")]
     [SerializeField] private int maxTrackedEnemies = 5;
-    private List<IHighlightable> scannedEnemies = new List<IHighlightable>();
+    private List<MaterialHighlighter> scannedEnemies = new List<MaterialHighlighter>();
 
     [Header("Object Colors")]
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
     [SerializeField] private Color itemColor = new Color(3f, 3f, 0f);
     [SerializeField] private Color interactableColor = new Color(0f, 3f, 3f);
+
+    [Header("Layer Settings")]
+    [SerializeField] private string highlightLayerName = "EagleVisionHighlight";
+    private int highlightLayer;
 
     [Header("Visual Polish")]
     [SerializeField] private float vignetteIntensity = 0.45f;
@@ -57,6 +61,11 @@ public class EagleVisionManager : MonoBehaviour
 
     void Start()
     {
+        // Get highlight layer
+        highlightLayer = LayerMask.NameToLayer(highlightLayerName);
+        if (highlightLayer == -1)
+            Debug.LogError($"Layer '{highlightLayerName}' not found!");
+
         // Post-processing setup
         if (postProcessVolume != null)
         {
@@ -79,18 +88,15 @@ public class EagleVisionManager : MonoBehaviour
             }
         }
 
-        // Highlight camera hanya aktif kalau kamu mau efek tambahan
         if (highlightCamera != null)
             highlightCamera.enabled = false;
     }
 
     void Update()
     {
-        // toggle EV
         if (Input.GetKeyDown(activationKey) && !isActive)
             ActivateEagleVision();
 
-        // smooth post-process transition
         if (colorAdjustments != null)
         {
             currentSaturation = Mathf.Lerp(currentSaturation, targetSaturation, Time.deltaTime * transitionSpeed);
@@ -109,11 +115,9 @@ public class EagleVisionManager : MonoBehaviour
             bloom.intensity.value = currentBloomIntensity;
         }
 
-        // pulse
         if (isPulsing)
             UpdatePulse();
 
-        // EV timer
         if (isActive)
         {
             activeTimer -= Time.deltaTime;
@@ -131,6 +135,15 @@ public class EagleVisionManager : MonoBehaviour
 
         if (highlightCamera != null)
             highlightCamera.enabled = true;
+
+        // Auto-highlight scanned enemies
+        foreach (var enemy in scannedEnemies)
+        {
+            if (enemy != null)
+            {
+                enemy.Highlight(enemyColor, highlightLayer);
+            }
+        }
 
         StartPulse();
         activeTimer = activeDuration;
@@ -163,6 +176,9 @@ public class EagleVisionManager : MonoBehaviour
         if (pulseWavePrefab != null)
         {
             currentPulseWave = Instantiate(pulseWavePrefab, transform.position, Quaternion.identity);
+            
+            // Pulse wave juga di highlight layer
+            currentPulseWave.layer = highlightLayer;
 
             var pulseRenderer = currentPulseWave.GetComponent<Renderer>();
             if (pulseRenderer != null)
@@ -215,35 +231,34 @@ public class EagleVisionManager : MonoBehaviour
             if (!(col.CompareTag("EV_Enemy") || col.CompareTag("EV_Item") || col.CompareTag("EV_Interactable")))
                 continue;
 
-            IHighlightable highlightable = col.GetComponent<IHighlightable>();
+            MaterialHighlighter highlightable = col.GetComponent<MaterialHighlighter>();
             if (highlightable == null)
                 highlightable = col.gameObject.AddComponent<MaterialHighlighter>();
 
             if (col.CompareTag("EV_Enemy"))
             {
-                if (!scannedEnemies.Contains(highlightable))
+                highlightable.Highlight(enemyColor, highlightLayer);
+                
+                if (!highlightable.IsScanned)
                 {
-                    if (scannedEnemies.Count >= maxTrackedEnemies)
+                    highlightable.MarkAsScanned();
+                    
+                    if (!scannedEnemies.Contains(highlightable))
                     {
-                        scannedEnemies[0].ClearHighlight();
-                        scannedEnemies.RemoveAt(0);
+                        if (scannedEnemies.Count >= maxTrackedEnemies)
+                        {
+                            scannedEnemies.RemoveAt(0);
+                        }
+                        scannedEnemies.Add(highlightable);
                     }
-                    scannedEnemies.Add(highlightable);
                 }
-
-                // Enemy: permanent highlight, NO layer change
-                (highlightable as MaterialHighlighter)?.Highlight(enemyColor, true, 0);
             }
             else if (col.CompareTag("EV_Item"))
             {
-                // Temporary: use highlight layer
-                int highlightLayer = LayerMask.NameToLayer("EagleVisionHighlight");
                 highlightable.Highlight(itemColor, highlightLayer);
             }
             else if (col.CompareTag("EV_Interactable"))
             {
-                // Temporary: use highlight layer
-                int highlightLayer = LayerMask.NameToLayer("EagleVisionHighlight");
                 highlightable.Highlight(interactableColor, highlightLayer);
             }
         }
@@ -251,20 +266,10 @@ public class EagleVisionManager : MonoBehaviour
 
     void ClearAllHighlights()
     {
-        var highlightables = FindObjectsOfType<MonoBehaviour>(true).OfType<IHighlightable>();
+        var highlightables = FindObjectsOfType<MaterialHighlighter>();
         foreach (var h in highlightables)
         {
-            var go = (h as MonoBehaviour).gameObject;
-
-            if (go.CompareTag("EV_Enemy"))
-            {
-                // biarkan enemy tetap glowing
-                continue;
-            }
-            else
-            {
-                h.ClearHighlight();
-            }
+            h.ClearHighlight();
         }
     }
 

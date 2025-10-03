@@ -439,7 +439,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: fd916d8fe0b7e864bae0e7a9364e10a4, type: 2}
+  - {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -526,10 +526,10 @@ MonoBehaviour:
   pulseSpeed: 10
   pulseMaxRadius: 30
   activeDuration: 5
+  maxTrackedEnemies: 5
   enemyColor: {r: 1, g: 0, b: 0, a: 1}
   itemColor: {r: 1, g: 0.9583334, b: 0, a: 1}
   interactableColor: {r: 0, g: 0.22388077, b: 1, a: 1}
-  highlightLayerName: EagleVisionHighlight
   vignetteIntensity: 0.45
   bloomIntensity: 5
 --- !u!143 &488904916
@@ -892,7 +892,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 86c3af34f93ed454aa95e9c530199633, type: 2}
+  - {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1048,7 +1048,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4f119b52c5889844ca6a05507d3d70e4, type: 2}
+  - {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
