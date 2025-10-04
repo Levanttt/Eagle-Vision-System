@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -9,6 +10,7 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private Volume postProcessVolume;
     [SerializeField] private Camera highlightCamera;
     [SerializeField] private GameObject pulseWavePrefab;
+    [SerializeField] private PlayerTarget playerTarget; // ✅ Tambahkan ini
 
     [Header("Settings")]
     [SerializeField] private KeyCode activationKey = KeyCode.V;
@@ -24,9 +26,9 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private int maxTrackedEnemies = 5;
     private List<EnemyTarget> scannedEnemies = new List<EnemyTarget>();
 
-    [Header("Item Memory")] 
+    [Header("Item Memory")]
     [SerializeField] private int maxTrackedItems = 10;
-    private List<ItemTarget> scannedItems = new List<ItemTarget>(); 
+    private List<ItemTarget> scannedItems = new List<ItemTarget>();
 
     [Header("Object Colors")]
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
@@ -134,26 +136,17 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
-        // Auto-highlight scanned enemies
         foreach (var enemy in scannedEnemies)
-        {
-            if (enemy != null)
-            {
-                enemy.Scan(enemyColor, highlightLayer);
-            }
-        }
+            enemy?.Scan(enemyColor, highlightLayer);
 
-        // Auto-highlight scanned items (NEW)
         foreach (var item in scannedItems)
-        {
-            if (item != null)
-            {
-                item.Scan(itemColor, highlightLayer);
-            }
-        }
+            item?.Scan(itemColor, highlightLayer);
 
         StartPulse();
         activeTimer = activeDuration;
+
+        // ✅ Aktifkan efek abu-abu player
+        playerTarget?.ActivateEagleVision();
     }
 
     void DeactivateEagleVision()
@@ -168,12 +161,7 @@ public class EagleVisionManager : MonoBehaviour
 
         // Item: permanent highlight, restore layer
         foreach (var item in scannedItems)
-        {
-            if (item != null)
-            {
-                item.KeepHighlightButRestoreLayer();
-            }
-        }
+            item?.KeepHighlightButRestoreLayer();
 
         // Interactable: fade timer
         var interactables = FindObjectsOfType<InteractableTarget>();
@@ -185,18 +173,16 @@ public class EagleVisionManager : MonoBehaviour
 
         // Enemy: permanent highlight, restore layer
         foreach (var enemy in scannedEnemies)
-        {
-            if (enemy != null)
-            {
-                enemy.KeepHighlightButRestoreLayer();
-            }
-        }
+            enemy?.KeepHighlightButRestoreLayer();
 
         isPulsing = false;
         currentPulseRadius = 0f;
 
         if (currentPulseWave != null)
             Destroy(currentPulseWave);
+
+        // ✅ Balik ke mode normal (bukan aktif lagi)
+        playerTarget?.DeactivateEagleVision();
     }
 
     void StartPulse()
@@ -266,13 +252,10 @@ public class EagleVisionManager : MonoBehaviour
                 if (!enemy.IsScanned)
                 {
                     enemy.Scan(enemyColor, highlightLayer);
-                    
                     if (!scannedEnemies.Contains(enemy))
                     {
                         if (scannedEnemies.Count >= maxTrackedEnemies)
-                        {
                             scannedEnemies.RemoveAt(0);
-                        }
                         scannedEnemies.Add(enemy);
                     }
                 }
@@ -283,16 +266,13 @@ public class EagleVisionManager : MonoBehaviour
                 if (item == null)
                     item = col.gameObject.AddComponent<ItemTarget>();
 
-                if (!item.IsScanned) // NEW: Cek apakah sudah discan
+                if (!item.IsScanned)
                 {
                     item.Scan(itemColor, highlightLayer);
-                    
                     if (!scannedItems.Contains(item))
                     {
                         if (scannedItems.Count >= maxTrackedItems)
-                        {
                             scannedItems.RemoveAt(0);
-                        }
                         scannedItems.Add(item);
                     }
                 }
