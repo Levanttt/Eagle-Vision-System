@@ -1,10 +1,6 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// PlayerTarget: swap material ke EagleVision material untuk bagian mesh yang ditentukan (contoh: "Lower_Armor"),
-/// fading control (_GrayAmount) dan restore material + layer setelah Eagle Vision selesai.
-/// </summary>
 public class PlayerTarget : MonoBehaviour
 {
     [Header("Renderer target (Lower_Armor)")]
@@ -22,21 +18,27 @@ public class PlayerTarget : MonoBehaviour
     [Header("Fade")]
     [SerializeField] private float fadeSpeed = 5f;
 
-    // internal
-    private Material[] originalSharedMaterials; // shared materials asli (asset references)
-    private Material[] eagleMaterials;          // material instances dipakai saat EV aktif
+    [Header("Glow Settings")]
+    [SerializeField] private float fresnelPowerActive = 1f;
+    [SerializeField] private float fresnelPowerDefault = 3f;
+    [SerializeField] private Color fresnelColorActive = new Color(0.5f, 1.5f, 2f);
+    [SerializeField] private Color fresnelColorDefault = new Color(0.45f, 0.8f, 1f);
+
+    private Material[] originalSharedMaterials;
+    private Material[] eagleMaterials;
     private int originalLayer;
     private bool isEagleActive = false;
     private Coroutine fadeCoroutine;
     private float currentGray = 0f;
 
-    // id properti shader
     private static readonly int GrayAmountID = Shader.PropertyToID("_GrayAmount");
     private static readonly int EVActiveID = Shader.PropertyToID("_EVActive");
+    private static readonly int EVActive2ID = Shader.PropertyToID("_EVActive (1)");
+    private static readonly int FresnelPowerID = Shader.PropertyToID("_FresnelPower");
+    private static readonly int FresnelColorID = Shader.PropertyToID("FresnelColor");
 
     void Awake()
     {
-        // Temukan renderer jika belum diset
         if (targetRenderer == null)
         {
             Transform child = transform.Find("Lower_Armor");
@@ -53,14 +55,10 @@ public class PlayerTarget : MonoBehaviour
             return;
         }
 
-        // Simpan shared materials & layer
         originalSharedMaterials = targetRenderer.sharedMaterials;
         originalLayer = gameObject.layer;
     }
 
-    /// <summary>
-    /// Aktifkan Eagle Vision pada player.
-    /// </summary>
     public void ActivateEagleVision()
     {
         ActivateEagleVision(eagleVisionLayer);
@@ -95,27 +93,34 @@ public class PlayerTarget : MonoBehaviour
             }
 
             if (m.HasProperty(GrayAmountID))
-                m.SetFloat(GrayAmountID, 0f);
+                m.SetFloat(GrayAmountID, 0.5f);
 
             if (m.HasProperty(EVActiveID))
-                m.SetFloat(EVActiveID, 1f); // aktifkan efek shader
+                m.SetFloat(EVActiveID, 1f);
+            
+            if (m.HasProperty(EVActive2ID))
+                m.SetFloat(EVActive2ID, 1f);
+
+            if (m.HasProperty(FresnelPowerID))
+                m.SetFloat(FresnelPowerID, fresnelPowerActive);
+
+            if (m.HasProperty(FresnelColorID))
+                m.SetColor(FresnelColorID, fresnelColorActive);
+
+            // TAMBAHAN BARU - Force render queue ke Geometry (2000)
+            // Ini memastikan player render lebih dulu sebelum transparent objects
+            m.renderQueue = 3500;
 
             eagleMaterials[i] = m;
-            Debug.Log($"[PlayerTarget] EVActive set to {m.GetFloat("_EVActive")}");
-
         }
 
         targetRenderer.materials = eagleMaterials;
-
         isEagleActive = true;
 
         if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
-        fadeCoroutine = StartCoroutine(FadeGrayCoroutine(1f));
+        fadeCoroutine = StartCoroutine(FadeGrayCoroutine(0.6f));
     }
 
-    /// <summary>
-    /// Nonaktifkan Eagle Vision: fade out dan kembalikan material + layer original.
-    /// </summary>
     public void DeactivateEagleVision()
     {
         if (!isEagleActive)
@@ -129,17 +134,38 @@ public class PlayerTarget : MonoBehaviour
     {
         yield return FadeGrayCoroutineInternal(0f);
 
-        // matikan flag EVActive sebelum restore
         if (eagleMaterials != null)
         {
             foreach (var m in eagleMaterials)
-                if (m != null && m.HasProperty(EVActiveID))
+            {
+                if (m == null) continue;
+                
+                if (m.HasProperty(EVActiveID))
                     m.SetFloat(EVActiveID, 0f);
+                if (m.HasProperty(EVActive2ID))
+                    m.SetFloat(EVActive2ID, 0f);
+                if (m.HasProperty(FresnelPowerID))
+                    m.SetFloat(FresnelPowerID, fresnelPowerDefault);
+                if (m.HasProperty(FresnelColorID))
+                    m.SetColor(FresnelColorID, fresnelColorDefault);
+            }
         }
 
+        // SEBELUM restore ke original material, set render queue original material juga
         if (targetRenderer != null && originalSharedMaterials != null)
-            targetRenderer.sharedMaterials = originalSharedMaterials;
+        {
+            // Clone original materials dan set render queue tinggi
+            Material[] restoredMats = new Material[originalSharedMaterials.Length];
+            for (int i = 0; i < originalSharedMaterials.Length; i++)
+            {
+                Material m = new Material(originalSharedMaterials[i]);
+                m.renderQueue = 3500; // Tetap tinggi
+                restoredMats[i] = m;
+            }
+            targetRenderer.materials = restoredMats;
+        }
 
+        // Cleanup
         if (eagleMaterials != null)
         {
             for (int i = 0; i < eagleMaterials.Length; i++)

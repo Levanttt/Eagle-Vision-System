@@ -34,12 +34,10 @@ public class EnemyTarget : EagleVisionTarget
         permanentHighlight = true;
     }
 
-    // Method baru khusus enemy: tetap highlight tapi layer kembali normal
     public void KeepHighlightButRestoreLayer()
     {
-        // Material tetap highlight, tapi layer kembali ke Default
-        // Jadi Main Camera bisa render meski material masih glowing
-        RestoreLayer();
+        //RestoreLayer(); // Kembalikan ke layer Default
+        //SetRenderQueue(2501); // Turunkan render queue
     }
 
     public void OnKilled()
@@ -49,4 +47,6 @@ public class EnemyTarget : EagleVisionTarget
         isScanned = false;
         enabled = false;
     }
+
+    
 }

@@ -7,6 +7,7 @@ public abstract class EagleVisionTarget : MonoBehaviour
     [SerializeField] protected Material highlightMaterial;
 
     protected Renderer rend;
+    protected Material currentMaterialInstance; // TAMBAHAN BARU
     protected int originalLayer;
     protected bool isScanned = false;
     protected bool isHighlighted = false;
@@ -34,18 +35,32 @@ public abstract class EagleVisionTarget : MonoBehaviour
         gameObject.layer = highlightLayer;
 
         rend.material = highlightMaterial;
+        currentMaterialInstance = rend.material; // SIMPAN REFERENCE
         
-        if (highlightMaterial.HasProperty("_EmissionColor"))
-            rend.material.SetColor("_EmissionColor", color * 5f);
+        if (currentMaterialInstance.HasProperty("_EmissionColor"))
+            currentMaterialInstance.SetColor("_EmissionColor", color * 5f);
         
-        if (highlightMaterial.HasProperty("_BaseColor"))
-            rend.material.SetColor("_BaseColor", color);
+        if (currentMaterialInstance.HasProperty("_BaseColor"))
+            currentMaterialInstance.SetColor("_BaseColor", color);
     }
 
-    // Method baru: kembalikan layer tanpa reset material
     public virtual void RestoreLayer()
     {
         gameObject.layer = originalLayer;
+    }
+
+    // TAMBAHAN BARU - method untuk set render queue
+    public virtual void SetRenderQueue(int queue)
+    {
+        if (currentMaterialInstance != null)
+        {
+            currentMaterialInstance.renderQueue = queue;
+            Debug.Log($"[{gameObject.name}] Render queue set to: {currentMaterialInstance.renderQueue}");
+        }
+        else
+        {
+            Debug.LogWarning($"[{gameObject.name}] currentMaterialInstance is null!");
+        }
     }
 
     public virtual void ResetToDefault()
@@ -53,6 +68,13 @@ public abstract class EagleVisionTarget : MonoBehaviour
         if (rend != null && defaultMaterial != null)
         {
             rend.material = defaultMaterial;
+        }
+        
+        // Destroy material instance yang dibuat
+        if (currentMaterialInstance != null && currentMaterialInstance != highlightMaterial)
+        {
+            Destroy(currentMaterialInstance);
+            currentMaterialInstance = null;
         }
         
         gameObject.layer = originalLayer;

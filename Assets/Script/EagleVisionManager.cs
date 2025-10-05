@@ -143,6 +143,8 @@ public class EagleVisionManager : MonoBehaviour
             colorAdjustments.colorFilter.value = new Color(0.6f, 0.7f, 0.9f); // Blue tint
         }
 
+        playerTarget?.ActivateEagleVision();
+        
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
@@ -155,7 +157,7 @@ public class EagleVisionManager : MonoBehaviour
         StartPulse();
         activeTimer = activeDuration;
 
-        playerTarget?.ActivateEagleVision();
+        
     }
 
     void DeactivateEagleVision()
@@ -175,20 +177,17 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // COMMENT bagian ini supaya objek tetap di highlight layer
-        // foreach (var item in scannedItems)
-        //     item?.KeepHighlightButRestoreLayer();
+        foreach (var item in scannedItems)
+            item?.KeepHighlightButRestoreLayer();
 
         var interactables = FindObjectsOfType<InteractableTarget>();
         foreach (var interactable in interactables)
         {
             interactable.StartFadeTimer();
-            interactable.RestoreLayer();
         }
 
-        // COMMENT bagian ini juga
-        // foreach (var enemy in scannedEnemies)
-        //     enemy?.KeepHighlightButRestoreLayer();
+        foreach (var enemy in scannedEnemies)
+            enemy?.KeepHighlightButRestoreLayer();
 
         isPulsing = false;
         currentPulseRadius = 0f;

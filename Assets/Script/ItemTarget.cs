@@ -37,7 +37,8 @@ public class ItemTarget : EagleVisionTarget
 
     public void KeepHighlightButRestoreLayer()
     {
-        RestoreLayer();
+        //RestoreLayer();
+        //SetRenderQueue(2500);
     }
 
     // Dipanggil saat item diambil player
