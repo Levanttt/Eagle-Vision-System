@@ -10,7 +10,7 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private Volume postProcessVolume;
     [SerializeField] private Camera highlightCamera;
     [SerializeField] private GameObject pulseWavePrefab;
-    [SerializeField] private PlayerTarget playerTarget; // ✅ Tambahkan ini
+    [SerializeField] private PlayerTarget playerTarget; 
 
     [Header("Settings")]
     [SerializeField] private KeyCode activationKey = KeyCode.V;
@@ -129,9 +129,19 @@ public class EagleVisionManager : MonoBehaviour
     void ActivateEagleVision()
     {
         isActive = true;
-        targetSaturation = -100f;
+        targetSaturation = -60f; // Kurangi saturasi tapi tidak full grayscale
         targetVignetteIntensity = vignetteIntensity;
         targetBloomIntensity = bloomIntensity;
+
+        // Tambahkan dark tint effect
+        if (colorAdjustments != null)
+        {
+            colorAdjustments.postExposure.overrideState = true;
+            colorAdjustments.postExposure.value = -3f; // Buat lebih gelap
+            
+            colorAdjustments.colorFilter.overrideState = true;
+            colorAdjustments.colorFilter.value = new Color(0.6f, 0.7f, 0.9f); // Blue tint
+        }
 
         if (highlightCamera != null)
             highlightCamera.enabled = true;
@@ -145,7 +155,6 @@ public class EagleVisionManager : MonoBehaviour
         StartPulse();
         activeTimer = activeDuration;
 
-        // ✅ Aktifkan efek abu-abu player
         playerTarget?.ActivateEagleVision();
     }
 
@@ -156,14 +165,20 @@ public class EagleVisionManager : MonoBehaviour
         targetVignetteIntensity = 0f;
         targetBloomIntensity = 0f;
 
+        // Reset dark tint effect
+        if (colorAdjustments != null)
+        {
+            colorAdjustments.postExposure.value = 0f;
+            colorAdjustments.colorFilter.value = Color.white;
+        }
+
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // Item: permanent highlight, restore layer
-        foreach (var item in scannedItems)
-            item?.KeepHighlightButRestoreLayer();
+        // COMMENT bagian ini supaya objek tetap di highlight layer
+        // foreach (var item in scannedItems)
+        //     item?.KeepHighlightButRestoreLayer();
 
-        // Interactable: fade timer
         var interactables = FindObjectsOfType<InteractableTarget>();
         foreach (var interactable in interactables)
         {
@@ -171,9 +186,9 @@ public class EagleVisionManager : MonoBehaviour
             interactable.RestoreLayer();
         }
 
-        // Enemy: permanent highlight, restore layer
-        foreach (var enemy in scannedEnemies)
-            enemy?.KeepHighlightButRestoreLayer();
+        // COMMENT bagian ini juga
+        // foreach (var enemy in scannedEnemies)
+        //     enemy?.KeepHighlightButRestoreLayer();
 
         isPulsing = false;
         currentPulseRadius = 0f;
@@ -181,7 +196,6 @@ public class EagleVisionManager : MonoBehaviour
         if (currentPulseWave != null)
             Destroy(currentPulseWave);
 
-        // ✅ Balik ke mode normal (bukan aktif lagi)
         playerTarget?.DeactivateEagleVision();
     }
 
