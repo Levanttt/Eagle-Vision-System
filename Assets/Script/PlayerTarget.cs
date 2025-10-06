@@ -3,16 +3,14 @@ using UnityEngine;
 
 public class PlayerTarget : MonoBehaviour
 {
-    [Header("Renderer target (Lower_Armor)")]
-    [Tooltip("Jika kosong, script akan mencari child bernama 'Lower_Armor' atau fallback ke first SkinnedMeshRenderer.")]
-    [SerializeField] private SkinnedMeshRenderer targetRenderer;
+    [Header("Renderer targets")]
+    [Tooltip("List semua SkinnedMeshRenderer yang mau di-swap materialnya")]
+    [SerializeField] private SkinnedMeshRenderer[] targetRenderers;
 
     [Header("Materials")]
-    [Tooltip("Material shader Eagle Vision (shader graph) — harus punya property _BaseMap, _GrayAmount, dan _EVActive.")]
     [SerializeField] private Material playerEagleMaterial;
 
     [Header("Layer (opsional)")]
-    [Tooltip("Layer index yang dipakai oleh highlight camera. Jika -1, tidak akan memindahkan layer.")]
     [SerializeField] private int eagleVisionLayer = -1;
 
     [Header("Fade")]
@@ -24,8 +22,8 @@ public class PlayerTarget : MonoBehaviour
     [SerializeField] private Color fresnelColorActive = new Color(0.5f, 1.5f, 2f);
     [SerializeField] private Color fresnelColorDefault = new Color(0.45f, 0.8f, 1f);
 
-    private Material[] originalSharedMaterials;
-    private Material[] eagleMaterials;
+    private Material[][] originalSharedMaterials; // 2D array untuk multiple renderers
+    private Material[][] eagleMaterials;
     private int originalLayer;
     private bool isEagleActive = false;
     private Coroutine fadeCoroutine;
@@ -39,23 +37,26 @@ public class PlayerTarget : MonoBehaviour
 
     void Awake()
     {
-        if (targetRenderer == null)
+        // Kalau array kosong, cari semua SkinnedMeshRenderer di children
+        if (targetRenderers == null || targetRenderers.Length == 0)
         {
-            Transform child = transform.Find("Lower_Armor");
-            if (child != null)
-                targetRenderer = child.GetComponent<SkinnedMeshRenderer>();
-
-            if (targetRenderer == null)
-                targetRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+            targetRenderers = GetComponentsInChildren<SkinnedMeshRenderer>();
         }
 
-        if (targetRenderer == null)
+        if (targetRenderers == null || targetRenderers.Length == 0)
         {
-            Debug.LogWarning("[PlayerTarget] SkinnedMeshRenderer tidak ditemukan pada player atau child 'Lower_Armor'.");
+            Debug.LogWarning("[PlayerTarget] Tidak ada SkinnedMeshRenderer ditemukan.");
             return;
         }
 
-        originalSharedMaterials = targetRenderer.sharedMaterials;
+        // Simpan original materials untuk setiap renderer
+        originalSharedMaterials = new Material[targetRenderers.Length][];
+        for (int i = 0; i < targetRenderers.Length; i++)
+        {
+            if (targetRenderers[i] != null)
+                originalSharedMaterials[i] = targetRenderers[i].sharedMaterials;
+        }
+
         originalLayer = gameObject.layer;
     }
 
@@ -66,55 +67,62 @@ public class PlayerTarget : MonoBehaviour
 
     public void ActivateEagleVision(int highlightLayer)
     {
-        if (targetRenderer == null || playerEagleMaterial == null)
+        if (targetRenderers == null || targetRenderers.Length == 0 || playerEagleMaterial == null)
             return;
 
         if (isEagleActive)
             return;
 
-        var shared = originalSharedMaterials ?? targetRenderer.sharedMaterials;
-        int len = shared.Length;
-        eagleMaterials = new Material[len];
+        eagleMaterials = new Material[targetRenderers.Length][];
 
-        for (int i = 0; i < len; i++)
+        // Loop untuk setiap renderer (Body, Head_Hands, Lower_Armor)
+        for (int r = 0; r < targetRenderers.Length; r++)
         {
-            Material m = new Material(playerEagleMaterial);
+            if (targetRenderers[r] == null) continue;
 
-            if (shared[i] != null)
+            var shared = originalSharedMaterials[r];
+            int len = shared.Length;
+            eagleMaterials[r] = new Material[len];
+
+            for (int i = 0; i < len; i++)
             {
-                Texture baseTex = null;
-                if (shared[i].HasProperty("_BaseMap"))
-                    baseTex = shared[i].GetTexture("_BaseMap");
-                if (baseTex == null && shared[i].HasProperty("_MainTex"))
-                    baseTex = shared[i].GetTexture("_MainTex");
+                Material m = new Material(playerEagleMaterial);
 
-                if (baseTex != null && m.HasProperty("_BaseMap"))
-                    m.SetTexture("_BaseMap", baseTex);
+                if (shared[i] != null)
+                {
+                    Texture baseTex = null;
+                    if (shared[i].HasProperty("_BaseMap"))
+                        baseTex = shared[i].GetTexture("_BaseMap");
+                    if (baseTex == null && shared[i].HasProperty("_MainTex"))
+                        baseTex = shared[i].GetTexture("_MainTex");
+
+                    if (baseTex != null && m.HasProperty("_BaseMap"))
+                        m.SetTexture("_BaseMap", baseTex);
+                }
+
+                if (m.HasProperty(GrayAmountID))
+                    m.SetFloat(GrayAmountID, 0.5f);
+
+                if (m.HasProperty(EVActiveID))
+                    m.SetFloat(EVActiveID, 1f);
+                
+                if (m.HasProperty(EVActive2ID))
+                    m.SetFloat(EVActive2ID, 1f);
+
+                if (m.HasProperty(FresnelPowerID))
+                    m.SetFloat(FresnelPowerID, fresnelPowerActive);
+
+                if (m.HasProperty(FresnelColorID))
+                    m.SetColor(FresnelColorID, fresnelColorActive);
+
+                m.renderQueue = 3500;
+
+                eagleMaterials[r][i] = m;
             }
 
-            if (m.HasProperty(GrayAmountID))
-                m.SetFloat(GrayAmountID, 0.5f);
-
-            if (m.HasProperty(EVActiveID))
-                m.SetFloat(EVActiveID, 1f);
-            
-            if (m.HasProperty(EVActive2ID))
-                m.SetFloat(EVActive2ID, 1f);
-
-            if (m.HasProperty(FresnelPowerID))
-                m.SetFloat(FresnelPowerID, fresnelPowerActive);
-
-            if (m.HasProperty(FresnelColorID))
-                m.SetColor(FresnelColorID, fresnelColorActive);
-
-            // TAMBAHAN BARU - Force render queue ke Geometry (2000)
-            // Ini memastikan player render lebih dulu sebelum transparent objects
-            m.renderQueue = 3500;
-
-            eagleMaterials[i] = m;
+            targetRenderers[r].materials = eagleMaterials[r];
         }
 
-        targetRenderer.materials = eagleMaterials;
         isEagleActive = true;
 
         if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
@@ -136,41 +144,50 @@ public class PlayerTarget : MonoBehaviour
 
         if (eagleMaterials != null)
         {
-            foreach (var m in eagleMaterials)
+            foreach (var mats in eagleMaterials)
             {
-                if (m == null) continue;
-                
-                if (m.HasProperty(EVActiveID))
-                    m.SetFloat(EVActiveID, 0f);
-                if (m.HasProperty(EVActive2ID))
-                    m.SetFloat(EVActive2ID, 0f);
-                if (m.HasProperty(FresnelPowerID))
-                    m.SetFloat(FresnelPowerID, fresnelPowerDefault);
-                if (m.HasProperty(FresnelColorID))
-                    m.SetColor(FresnelColorID, fresnelColorDefault);
+                if (mats == null) continue;
+                foreach (var m in mats)
+                {
+                    if (m == null) continue;
+                    
+                    if (m.HasProperty(EVActiveID))
+                        m.SetFloat(EVActiveID, 0f);
+                    if (m.HasProperty(EVActive2ID))
+                        m.SetFloat(EVActive2ID, 0f);
+                    if (m.HasProperty(FresnelPowerID))
+                        m.SetFloat(FresnelPowerID, fresnelPowerDefault);
+                    if (m.HasProperty(FresnelColorID))
+                        m.SetColor(FresnelColorID, fresnelColorDefault);
+                }
             }
         }
 
-        // SEBELUM restore ke original material, set render queue original material juga
-        if (targetRenderer != null && originalSharedMaterials != null)
+        // Restore untuk setiap renderer
+        for (int r = 0; r < targetRenderers.Length; r++)
         {
-            // Clone original materials dan set render queue tinggi
-            Material[] restoredMats = new Material[originalSharedMaterials.Length];
-            for (int i = 0; i < originalSharedMaterials.Length; i++)
+            if (targetRenderers[r] == null || originalSharedMaterials[r] == null) continue;
+
+            Material[] restoredMats = new Material[originalSharedMaterials[r].Length];
+            for (int i = 0; i < originalSharedMaterials[r].Length; i++)
             {
-                Material m = new Material(originalSharedMaterials[i]);
-                m.renderQueue = 3500; // Tetap tinggi
+                Material m = new Material(originalSharedMaterials[r][i]);
+                m.renderQueue = 3500;
                 restoredMats[i] = m;
             }
-            targetRenderer.materials = restoredMats;
+            targetRenderers[r].materials = restoredMats;
         }
 
         // Cleanup
         if (eagleMaterials != null)
         {
-            for (int i = 0; i < eagleMaterials.Length; i++)
-                if (eagleMaterials[i] != null)
-                    Destroy(eagleMaterials[i]);
+            foreach (var mats in eagleMaterials)
+            {
+                if (mats == null) continue;
+                for (int i = 0; i < mats.Length; i++)
+                    if (mats[i] != null)
+                        Destroy(mats[i]);
+            }
             eagleMaterials = null;
         }
 
@@ -194,21 +211,32 @@ public class PlayerTarget : MonoBehaviour
             t += Time.deltaTime / Mathf.Max(0.0001f, duration);
             currentGray = Mathf.Lerp(start, target, t);
 
-            var mats = targetRenderer.materials;
-            for (int i = 0; i < mats.Length; i++)
+            // Update semua renderer
+            for (int r = 0; r < targetRenderers.Length; r++)
             {
-                if (mats[i] != null && mats[i].HasProperty(GrayAmountID))
-                    mats[i].SetFloat(GrayAmountID, currentGray);
+                if (targetRenderers[r] == null) continue;
+                var mats = targetRenderers[r].materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (mats[i] != null && mats[i].HasProperty(GrayAmountID))
+                        mats[i].SetFloat(GrayAmountID, currentGray);
+                }
             }
 
             yield return null;
         }
 
         currentGray = target;
-        var finalMats = targetRenderer.materials;
-        for (int i = 0; i < finalMats.Length; i++)
-            if (finalMats[i] != null && finalMats[i].HasProperty(GrayAmountID))
-                finalMats[i].SetFloat(GrayAmountID, currentGray);
+        
+        // Final update semua renderer
+        for (int r = 0; r < targetRenderers.Length; r++)
+        {
+            if (targetRenderers[r] == null) continue;
+            var finalMats = targetRenderers[r].materials;
+            for (int i = 0; i < finalMats.Length; i++)
+                if (finalMats[i] != null && finalMats[i].HasProperty(GrayAmountID))
+                    finalMats[i].SetFloat(GrayAmountID, currentGray);
+        }
     }
 
     public bool IsActiveEagleVision => isEagleActive;

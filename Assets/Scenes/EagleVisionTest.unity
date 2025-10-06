@@ -296,6 +296,12 @@ MonoBehaviour:
   m_CameraActivatedEvent:
     m_PersistentCalls:
       m_Calls: []
+--- !u!137 &382984452 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1630794972795428178, guid: 589b579315ff98f4ea3138556e15eb75,
+    type: 3}
+  m_PrefabInstance: {fileID: 1217320119}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1240,7 +1246,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68c03685248f2c347ab85612847b95a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetRenderer: {fileID: 1959633166}
+  targetRenderers:
+  - {fileID: 382984452}
+  - {fileID: 1439032344}
+  - {fileID: 1959633166}
   playerEagleMaterial: {fileID: 2100000, guid: 9a3aaa6919803d44d8b84e1d424da6de, type: 2}
   eagleVisionLayer: 10
   fadeSpeed: 5
@@ -2269,6 +2278,12 @@ Transform:
   - {fileID: 1879851205}
   m_Father: {fileID: 1670746615}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!137 &1439032344 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7038496851037034636, guid: 589b579315ff98f4ea3138556e15eb75,
+    type: 3}
+  m_PrefabInstance: {fileID: 1217320119}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1670746612
 GameObject:
   m_ObjectHideFlags: 0
