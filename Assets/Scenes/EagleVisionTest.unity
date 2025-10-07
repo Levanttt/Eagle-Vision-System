@@ -186,7 +186,7 @@ Camera:
   field of view: 60
   orthographic: 0
   orthographic size: 10
-  m_Depth: -1
+  m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -230,7 +230,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_RenderShadows: 1
-  m_RequiresDepthTextureOption: 2
+  m_RequiresDepthTextureOption: 1
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
   m_Cameras:
@@ -541,6 +541,7 @@ MonoBehaviour:
   defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   highlightMaterial: {fileID: 2100000, guid: 85acab803b2e5db4fad5d5452d0648d2, type: 2}
   maxDistanceFromPlayer: 50
+  highlightDurationAfterEV: 5
 --- !u!1 &536203867
 GameObject:
   m_ObjectHideFlags: 0
@@ -553,6 +554,7 @@ GameObject:
   - component: {fileID: 536203870}
   - component: {fileID: 536203869}
   - component: {fileID: 536203868}
+  - component: {fileID: 536203872}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -646,6 +648,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &536203872
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 536203867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98df08de965fb9f49a12307ad58cd226, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  renderers: []
+  logInterval: 2
 --- !u!1 &621147294
 GameObject:
   m_ObjectHideFlags: 0
@@ -708,7 +724,7 @@ MonoBehaviour:
   m_AntialiasingQuality: 2
   m_StopNaN: 0
   m_Dithering: 0
-  m_ClearDepth: 1
+  m_ClearDepth: 0
   m_AllowXRRendering: 1
   m_AllowHDROutput: 1
   m_UseScreenCoordOverride: 0
@@ -771,7 +787,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -1032,6 +1048,7 @@ MonoBehaviour:
   defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   highlightMaterial: {fileID: 2100000, guid: 137740ae63b0afe44a2f5d460b4e816d, type: 2}
   maxDistanceFromPlayer: 50
+  highlightDurationAfterEV: 5
 --- !u!1 &827450215 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 589b579315ff98f4ea3138556e15eb75,
@@ -1085,9 +1102,9 @@ MonoBehaviour:
   activeDuration: 5
   maxTrackedEnemies: 5
   maxTrackedItems: 10
-  enemyColor: {r: 1, g: 0, b: 0, a: 1}
-  itemColor: {r: 1, g: 0.9583334, b: 0, a: 1}
-  interactableColor: {r: 0, g: 0.22388077, b: 1, a: 1}
+  enemyColor: {r: 3, g: 0, b: 0, a: 1}
+  itemColor: {r: 3, g: 3, b: 0, a: 1}
+  interactableColor: {r: 0, g: 3, b: 3, a: 1}
   highlightLayerName: EagleVisionHighlight
   vignetteIntensity: 0.45
   bloomIntensity: 5
@@ -1555,7 +1572,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   highlightMaterial: {fileID: 2100000, guid: 7bfa10f751ddaf8458739583fc2f5673, type: 2}
-  highlightDurationAfterEV: 3
+  highlightDurationAfterEV: 5
 --- !u!1 &1191866773
 GameObject:
   m_ObjectHideFlags: 0

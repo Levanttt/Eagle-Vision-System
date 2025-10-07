@@ -4,9 +4,12 @@ public class EnemyTarget : EagleVisionTarget
 {
     [Header("Enemy Settings")]
     [SerializeField] private float maxDistanceFromPlayer = 50f;
+    [SerializeField] private float highlightDurationAfterEV = 5f; // waktu sebelum hilang highlight
 
     private Transform playerTransform;
     private bool permanentHighlight = false;
+    private float highlightTimer = 0f;
+    private bool timerActive = false;
 
     protected override void Awake()
     {
@@ -16,10 +19,22 @@ public class EnemyTarget : EagleVisionTarget
 
     void Update()
     {
+        // Timer auto-reset setelah EV
+        if (timerActive)
+        {
+            highlightTimer -= Time.deltaTime;
+            if (highlightTimer <= 0f)
+            {
+                ResetToDefault();
+                timerActive = false;
+                permanentHighlight = false;
+            }
+        }
+
+        // Hapus highlight kalau terlalu jauh (opsional)
         if (isScanned && permanentHighlight && playerTransform != null)
         {
             float distance = Vector3.Distance(transform.position, playerTransform.position);
-            
             if (distance > maxDistanceFromPlayer)
             {
                 ResetToDefault();
@@ -34,10 +49,13 @@ public class EnemyTarget : EagleVisionTarget
         permanentHighlight = true;
     }
 
-    public void KeepHighlightButRestoreLayer()
+    public void StartFadeTimer()
     {
-        //RestoreLayer(); // Kembalikan ke layer Default
-        //SetRenderQueue(2501); // Turunkan render queue
+        if (isHighlighted)
+        {
+            highlightTimer = highlightDurationAfterEV;
+            timerActive = true;
+        }
     }
 
     public void OnKilled()
@@ -47,6 +65,4 @@ public class EnemyTarget : EagleVisionTarget
         isScanned = false;
         enabled = false;
     }
-
-    
 }

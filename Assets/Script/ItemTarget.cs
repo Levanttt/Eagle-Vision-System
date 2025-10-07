@@ -4,9 +4,12 @@ public class ItemTarget : EagleVisionTarget
 {
     [Header("Item Settings")]
     [SerializeField] private float maxDistanceFromPlayer = 50f;
+    [SerializeField] private float highlightDurationAfterEV = 5f;
 
     private Transform playerTransform;
     private bool permanentHighlight = false;
+    private float highlightTimer = 0f;
+    private bool timerActive = false;
 
     protected override void Awake()
     {
@@ -16,11 +19,20 @@ public class ItemTarget : EagleVisionTarget
 
     void Update()
     {
-        // Item tetap highlight sampai jauh dari player (seperti enemy)
+        if (timerActive)
+        {
+            highlightTimer -= Time.deltaTime;
+            if (highlightTimer <= 0f)
+            {
+                ResetToDefault();
+                timerActive = false;
+                permanentHighlight = false;
+            }
+        }
+
         if (isScanned && permanentHighlight && playerTransform != null)
         {
             float distance = Vector3.Distance(transform.position, playerTransform.position);
-            
             if (distance > maxDistanceFromPlayer)
             {
                 ResetToDefault();
@@ -35,31 +47,28 @@ public class ItemTarget : EagleVisionTarget
         permanentHighlight = true;
     }
 
-    public void KeepHighlightButRestoreLayer()
+    public void StartFadeTimer()
     {
-        //RestoreLayer();
-        //SetRenderQueue(2500);
+        if (isHighlighted)
+        {
+            highlightTimer = highlightDurationAfterEV;
+            timerActive = true;
+        }
     }
 
-    // Dipanggil saat item diambil player
     public void OnPickedUp()
     {
         ResetToDefault();
         permanentHighlight = false;
         isScanned = false;
-        
-        // Destroy atau disable object
         gameObject.SetActive(false);
     }
 
-    // Dipanggil saat item di-"kill"/hancurkan
     public void OnDestroyed()
     {
         ResetToDefault();
         permanentHighlight = false;
         isScanned = false;
-        
-        // Bisa tambah efek hancur, partikel, dll
         gameObject.SetActive(false);
     }
 }

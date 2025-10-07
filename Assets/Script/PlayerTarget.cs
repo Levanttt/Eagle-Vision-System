@@ -150,7 +150,7 @@ public class PlayerTarget : MonoBehaviour
                 foreach (var m in mats)
                 {
                     if (m == null) continue;
-                    
+
                     if (m.HasProperty(EVActiveID))
                         m.SetFloat(EVActiveID, 0f);
                     if (m.HasProperty(EVActive2ID))
@@ -163,7 +163,7 @@ public class PlayerTarget : MonoBehaviour
             }
         }
 
-        // Restore untuk setiap renderer
+        // Restore untuk setiap renderer — **PASTIKAN OPAQUE & default queue**
         for (int r = 0; r < targetRenderers.Length; r++)
         {
             if (targetRenderers[r] == null || originalSharedMaterials[r] == null) continue;
@@ -171,14 +171,28 @@ public class PlayerTarget : MonoBehaviour
             Material[] restoredMats = new Material[originalSharedMaterials[r].Length];
             for (int i = 0; i < originalSharedMaterials[r].Length; i++)
             {
-                Material m = new Material(originalSharedMaterials[r][i]);
-                m.renderQueue = 3500;
-                restoredMats[i] = m;
+                Material baseMat = new Material(originalSharedMaterials[r][i]);
+                baseMat.CopyPropertiesFromMaterial(originalSharedMaterials[r][i]);
+                baseMat.shader = originalSharedMaterials[r][i].shader;
+
+                // FORCE jadi opaque / tulis depth agar tidak nembus
+                if (baseMat.HasProperty("_Surface")) baseMat.SetFloat("_Surface", 0f); // 0 = Opaque (URP)
+                if (baseMat.HasProperty("_Blend")) baseMat.SetFloat("_Blend", 0f);
+                if (baseMat.HasProperty("_ZWrite")) baseMat.SetFloat("_ZWrite", 1f);
+
+                // Blend modes -> opaque defaults
+                if (baseMat.HasProperty("_SrcBlend")) baseMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                if (baseMat.HasProperty("_DstBlend")) baseMat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+
+                // Kembalikan ke queue default (biarkan shader menentukan)
+                baseMat.renderQueue = -1;
+
+                restoredMats[i] = baseMat;
             }
             targetRenderers[r].materials = restoredMats;
         }
 
-        // Cleanup
+        // Cleanup eagle materials
         if (eagleMaterials != null)
         {
             foreach (var mats in eagleMaterials)
@@ -194,6 +208,7 @@ public class PlayerTarget : MonoBehaviour
         isEagleActive = false;
         fadeCoroutine = null;
     }
+
 
     private IEnumerator FadeGrayCoroutine(float target)
     {

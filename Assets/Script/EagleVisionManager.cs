@@ -167,7 +167,6 @@ public class EagleVisionManager : MonoBehaviour
         targetVignetteIntensity = 0f;
         targetBloomIntensity = 0f;
 
-        // Reset dark tint effect
         if (colorAdjustments != null)
         {
             colorAdjustments.postExposure.value = 0f;
@@ -177,17 +176,16 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
+        // 🔹 Item dan Enemy sekarang juga fade setelah EV selesai
         foreach (var item in scannedItems)
-            item?.KeepHighlightButRestoreLayer();
+            item?.StartFadeTimer();
+
+        foreach (var enemy in scannedEnemies)
+            enemy?.StartFadeTimer();
 
         var interactables = FindObjectsOfType<InteractableTarget>();
         foreach (var interactable in interactables)
-        {
             interactable.StartFadeTimer();
-        }
-
-        foreach (var enemy in scannedEnemies)
-            enemy?.KeepHighlightButRestoreLayer();
 
         isPulsing = false;
         currentPulseRadius = 0f;
@@ -197,6 +195,7 @@ public class EagleVisionManager : MonoBehaviour
 
         playerTarget?.DeactivateEagleVision();
     }
+
 
     void StartPulse()
     {
