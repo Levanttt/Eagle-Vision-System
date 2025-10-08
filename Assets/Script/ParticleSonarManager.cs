@@ -2,14 +2,16 @@ using UnityEngine;
 
 public class ParticleSonarManager : MonoBehaviour
 {
-    [Header("Particle System")]
-    [SerializeField] private ParticleSystem sonarParticle;
+    [Header("Particle Prefab")]
+    [SerializeField] private GameObject sonarPrefab; // Assign prefab Vfx_TerrainScanner_tut
     
     [Header("Detection Settings")]
     [SerializeField] private float maxRadius = 30f;
     [SerializeField] private float detectionSpeed = 15f;
     [SerializeField] private LayerMask detectionLayers;
     
+    private ParticleSystem sonarParticle;
+    private GameObject currentSonarInstance;
     private float currentRadius;
     private bool isScanning;
     private EagleVisionManager eagleVisionManager;
@@ -17,9 +19,6 @@ public class ParticleSonarManager : MonoBehaviour
     void Start()
     {
         eagleVisionManager = GetComponent<EagleVisionManager>();
-        
-        if (sonarParticle != null)
-            sonarParticle.Stop();
     }
 
     void Update()
@@ -43,9 +42,22 @@ public class ParticleSonarManager : MonoBehaviour
 
     public void StartPulse()
     {
-        if (sonarParticle != null)
+        // Instantiate prefab di posisi player
+        if (sonarPrefab != null)
         {
-            sonarParticle.Play();
+            currentSonarInstance = Instantiate(sonarPrefab, transform.position, Quaternion.identity);
+            
+            // Get particle system dari child (Sphere)
+            sonarParticle = currentSonarInstance.GetComponentInChildren<ParticleSystem>();
+            
+            if (sonarParticle != null)
+            {
+                sonarParticle.Play();
+            }
+            
+            // Destroy setelah particle selesai
+            float duration = sonarParticle != null ? sonarParticle.main.duration : 2f;
+            Destroy(currentSonarInstance, duration + 0.5f);
         }
         
         currentRadius = 0f;
@@ -57,6 +69,11 @@ public class ParticleSonarManager : MonoBehaviour
         if (sonarParticle != null)
         {
             sonarParticle.Stop();
+        }
+        
+        if (currentSonarInstance != null)
+        {
+            Destroy(currentSonarInstance);
         }
         
         isScanning = false;
