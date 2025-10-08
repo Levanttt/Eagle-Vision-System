@@ -9,14 +9,12 @@ public class EagleVisionManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private Volume postProcessVolume;
     [SerializeField] private Camera highlightCamera;
-    [SerializeField] private GameObject pulseWavePrefab;
+    [SerializeField] private ParticleSonarManager sonarPulse;
     [SerializeField] private PlayerTarget playerTarget; 
 
     [Header("Settings")]
     [SerializeField] private KeyCode toggleKey = KeyCode.V;
     [SerializeField] private float transitionSpeed = 5f;
-    [SerializeField] private float pulseSpeed = 10f;
-    [SerializeField] private float pulseMaxRadius = 30f;
 
     [Header("Enemy Memory")]
     [SerializeField] private int maxTrackedEnemies = 5;
@@ -40,11 +38,6 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private float bloomIntensity = 5f;
 
     private bool isActive;
-    private bool isPulsing;
-    private float currentPulseRadius;
-
-    private GameObject currentPulseWave;
-    private Material pulseMaterial;
 
     private ColorAdjustments colorAdjustments;
     private Vignette vignette;
@@ -116,9 +109,6 @@ public class EagleVisionManager : MonoBehaviour
             currentBloomIntensity = Mathf.Lerp(currentBloomIntensity, targetBloomIntensity, Time.deltaTime * transitionSpeed);
             bloom.intensity.value = currentBloomIntensity;
         }
-
-        if (isPulsing)
-            UpdatePulse();
     }
 
     void ActivateEagleVision()
@@ -148,7 +138,8 @@ public class EagleVisionManager : MonoBehaviour
         foreach (var item in scannedItems)
             item?.Scan(itemColor, highlightLayer);
 
-        StartPulse();
+        if (sonarPulse != null)
+            sonarPulse.StartPulse();
     }
 
     void DeactivateEagleVision()
@@ -178,70 +169,16 @@ public class EagleVisionManager : MonoBehaviour
         foreach (var interactable in interactables)
             interactable.ResetToDefault();
 
-        isPulsing = false;
-        currentPulseRadius = 0f;
-
-        if (currentPulseWave != null)
-            Destroy(currentPulseWave);
+        if (sonarPulse != null)
+            sonarPulse.StopPulse();
 
         playerTarget?.DeactivateEagleVision();
     }
 
-    void StartPulse()
+    // Method yang dipanggil oleh SonarPulseManager
+    public void DetectObjectsAtRadius(Vector3 center, float radius)
     {
-        isPulsing = true;
-        currentPulseRadius = 0f;
-
-        if (pulseWavePrefab != null)
-        {
-            currentPulseWave = Instantiate(pulseWavePrefab, transform.position, Quaternion.identity);
-            currentPulseWave.layer = highlightLayer;
-
-            var pulseRenderer = currentPulseWave.GetComponent<Renderer>();
-            if (pulseRenderer != null)
-            {
-                pulseMaterial = new Material(pulseRenderer.sharedMaterial);
-                pulseRenderer.material = pulseMaterial;
-            }
-        }
-    }
-
-    void UpdatePulse()
-    {
-        currentPulseRadius += pulseSpeed * Time.deltaTime;
-
-        if (currentPulseWave != null)
-        {
-            float scale = currentPulseRadius * 2f;
-            currentPulseWave.transform.localScale = Vector3.one * scale;
-
-            if (pulseMaterial != null)
-            {
-                float alpha = 1f - (currentPulseRadius / pulseMaxRadius);
-                Color currentColor = pulseMaterial.GetColor("_BaseColor");
-                currentColor.a = alpha * 0.5f;
-                pulseMaterial.SetColor("_BaseColor", currentColor);
-            }
-        }
-
-        DetectObjectsInRadius(currentPulseRadius);
-
-        if (currentPulseRadius >= pulseMaxRadius)
-        {
-            isPulsing = false;
-            currentPulseRadius = 0f;
-
-            if (currentPulseWave != null)
-                Destroy(currentPulseWave);
-
-            if (pulseMaterial != null)
-                Destroy(pulseMaterial);
-        }
-    }
-
-    void DetectObjectsInRadius(float radius)
-    {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, radius);
+        Collider[] hitColliders = Physics.OverlapSphere(center, radius);
 
         foreach (Collider col in hitColliders)
         {
@@ -292,13 +229,6 @@ public class EagleVisionManager : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if (isPulsing && Application.isPlaying)
-        {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(transform.position, currentPulseRadius);
-        }
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, pulseMaxRadius);
+        // Gizmos handled by SonarPulseManager
     }
 }
