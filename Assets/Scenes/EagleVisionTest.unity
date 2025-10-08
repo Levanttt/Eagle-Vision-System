@@ -434,7 +434,7 @@ GameObject:
   - component: {fileID: 470252016}
   - component: {fileID: 470252020}
   m_Layer: 0
-  m_Name: Item_Test
+  m_Name: Target
   m_TagString: EV_Item
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -541,7 +541,6 @@ MonoBehaviour:
   defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   highlightMaterial: {fileID: 2100000, guid: 85acab803b2e5db4fad5d5452d0648d2, type: 2}
   maxDistanceFromPlayer: 50
-  highlightDurationAfterEV: 5
 --- !u!1 &536203867
 GameObject:
   m_ObjectHideFlags: 0
@@ -680,7 +679,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &621147295
 Transform:
   m_ObjectHideFlags: 0
@@ -784,10 +783,10 @@ Camera:
   field of view: 60
   orthographic: 0
   orthographic size: 5
-  m_Depth: 0
+  m_Depth: 1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 0
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -1048,7 +1047,6 @@ MonoBehaviour:
   defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   highlightMaterial: {fileID: 2100000, guid: 137740ae63b0afe44a2f5d460b4e816d, type: 2}
   maxDistanceFromPlayer: 50
-  highlightDurationAfterEV: 5
 --- !u!1 &827450215 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 589b579315ff98f4ea3138556e15eb75,
@@ -1095,16 +1093,15 @@ MonoBehaviour:
   pulseWavePrefab: {fileID: 1011761818196902752, guid: 156cc73cf55979240a3fded4394a3dd2,
     type: 3}
   playerTarget: {fileID: 827450231}
-  activationKey: 118
+  toggleKey: 118
   transitionSpeed: 5
   pulseSpeed: 25
   pulseMaxRadius: 30
-  activeDuration: 5
   maxTrackedEnemies: 5
   maxTrackedItems: 10
-  enemyColor: {r: 3, g: 0, b: 0, a: 1}
-  itemColor: {r: 3, g: 3, b: 0, a: 1}
-  interactableColor: {r: 0, g: 3, b: 3, a: 1}
+  enemyColor: {r: 1, g: 0, b: 0, a: 1}
+  itemColor: {r: 1, g: 0.9583334, b: 0, a: 1}
+  interactableColor: {r: 0, g: 0.22388077, b: 1, a: 1}
   highlightLayerName: EagleVisionHighlight
   vignetteIntensity: 0.45
   bloomIntensity: 5
@@ -1264,9 +1261,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetRenderers:
-  - {fileID: 382984452}
   - {fileID: 1439032344}
   - {fileID: 1959633166}
+  - {fileID: 382984452}
   playerEagleMaterial: {fileID: 2100000, guid: 9a3aaa6919803d44d8b84e1d424da6de, type: 2}
   eagleVisionLayer: 10
   fadeSpeed: 5
@@ -1464,7 +1461,7 @@ GameObject:
   - component: {fileID: 1003296784}
   - component: {fileID: 1003296788}
   m_Layer: 0
-  m_Name: Interactable_Test
+  m_Name: Allies
   m_TagString: EV_Interactable
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1572,7 +1569,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultMaterial: {fileID: 2100000, guid: 8f71bc122a583d2489864eb8f68a1a15, type: 2}
   highlightMaterial: {fileID: 2100000, guid: 7bfa10f751ddaf8458739583fc2f5673, type: 2}
-  highlightDurationAfterEV: 5
 --- !u!1 &1191866773
 GameObject:
   m_ObjectHideFlags: 0

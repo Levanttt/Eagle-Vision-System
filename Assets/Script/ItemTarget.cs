@@ -4,12 +4,9 @@ public class ItemTarget : EagleVisionTarget
 {
     [Header("Item Settings")]
     [SerializeField] private float maxDistanceFromPlayer = 50f;
-    [SerializeField] private float highlightDurationAfterEV = 5f;
 
     private Transform playerTransform;
     private bool permanentHighlight = false;
-    private float highlightTimer = 0f;
-    private bool timerActive = false;
 
     protected override void Awake()
     {
@@ -19,17 +16,6 @@ public class ItemTarget : EagleVisionTarget
 
     void Update()
     {
-        if (timerActive)
-        {
-            highlightTimer -= Time.deltaTime;
-            if (highlightTimer <= 0f)
-            {
-                ResetToDefault();
-                timerActive = false;
-                permanentHighlight = false;
-            }
-        }
-
         if (isScanned && permanentHighlight && playerTransform != null)
         {
             float distance = Vector3.Distance(transform.position, playerTransform.position);
@@ -45,15 +31,6 @@ public class ItemTarget : EagleVisionTarget
     {
         base.Scan(color, highlightLayer);
         permanentHighlight = true;
-    }
-
-    public void StartFadeTimer()
-    {
-        if (isHighlighted)
-        {
-            highlightTimer = highlightDurationAfterEV;
-            timerActive = true;
-        }
     }
 
     public void OnPickedUp()

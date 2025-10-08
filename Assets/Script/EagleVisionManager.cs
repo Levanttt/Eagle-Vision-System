@@ -13,14 +13,10 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private PlayerTarget playerTarget; 
 
     [Header("Settings")]
-    [SerializeField] private KeyCode activationKey = KeyCode.V;
+    [SerializeField] private KeyCode toggleKey = KeyCode.V;
     [SerializeField] private float transitionSpeed = 5f;
     [SerializeField] private float pulseSpeed = 10f;
     [SerializeField] private float pulseMaxRadius = 30f;
-
-    [Header("Duration Settings")]
-    [SerializeField] private float activeDuration = 5f;
-    private float activeTimer;
 
     [Header("Enemy Memory")]
     [SerializeField] private int maxTrackedEnemies = 5;
@@ -94,8 +90,14 @@ public class EagleVisionManager : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(activationKey) && !isActive)
-            ActivateEagleVision();
+        // Toggle on/off dengan tombol yang sama
+        if (Input.GetKeyDown(toggleKey))
+        {
+            if (isActive)
+                DeactivateEagleVision();
+            else
+                ActivateEagleVision();
+        }
 
         if (colorAdjustments != null)
         {
@@ -117,30 +119,22 @@ public class EagleVisionManager : MonoBehaviour
 
         if (isPulsing)
             UpdatePulse();
-
-        if (isActive)
-        {
-            activeTimer -= Time.deltaTime;
-            if (activeTimer <= 0f)
-                DeactivateEagleVision();
-        }
     }
 
     void ActivateEagleVision()
     {
         isActive = true;
-        targetSaturation = -60f; // Kurangi saturasi tapi tidak full grayscale
+        targetSaturation = -60f;
         targetVignetteIntensity = vignetteIntensity;
         targetBloomIntensity = bloomIntensity;
 
-        // Tambahkan dark tint effect
         if (colorAdjustments != null)
         {
             colorAdjustments.postExposure.overrideState = true;
-            colorAdjustments.postExposure.value = -3f; // Buat lebih gelap
+            colorAdjustments.postExposure.value = -3f;
             
             colorAdjustments.colorFilter.overrideState = true;
-            colorAdjustments.colorFilter.value = new Color(0.6f, 0.7f, 0.9f); // Blue tint
+            colorAdjustments.colorFilter.value = new Color(0.6f, 0.7f, 0.9f);
         }
 
         playerTarget?.ActivateEagleVision();
@@ -155,9 +149,6 @@ public class EagleVisionManager : MonoBehaviour
             item?.Scan(itemColor, highlightLayer);
 
         StartPulse();
-        activeTimer = activeDuration;
-
-        
     }
 
     void DeactivateEagleVision()
@@ -176,16 +167,16 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // 🔹 Item dan Enemy sekarang juga fade setelah EV selesai
+        // Langsung reset semua highlight
         foreach (var item in scannedItems)
-            item?.StartFadeTimer();
+            item?.ResetToDefault();
 
         foreach (var enemy in scannedEnemies)
-            enemy?.StartFadeTimer();
+            enemy?.ResetToDefault();
 
         var interactables = FindObjectsOfType<InteractableTarget>();
         foreach (var interactable in interactables)
-            interactable.StartFadeTimer();
+            interactable.ResetToDefault();
 
         isPulsing = false;
         currentPulseRadius = 0f;
@@ -195,7 +186,6 @@ public class EagleVisionManager : MonoBehaviour
 
         playerTarget?.DeactivateEagleVision();
     }
-
 
     void StartPulse()
     {
