@@ -114,21 +114,32 @@ public class EagleVisionManager : MonoBehaviour
     void ActivateEagleVision()
     {
         isActive = true;
-        targetSaturation = -60f;
-        targetVignetteIntensity = vignetteIntensity;
-        targetBloomIntensity = bloomIntensity;
+        targetSaturation = -80f;
+        targetVignetteIntensity = 0.65f;
 
         if (colorAdjustments != null)
         {
             colorAdjustments.postExposure.overrideState = true;
-            colorAdjustments.postExposure.value = -3f;
-            
+            colorAdjustments.postExposure.value = -2f;
+
+            colorAdjustments.contrast.overrideState = true;
+            colorAdjustments.contrast.value = 25f;
+
             colorAdjustments.colorFilter.overrideState = true;
-            colorAdjustments.colorFilter.value = new Color(0.6f, 0.7f, 0.9f);
+            colorAdjustments.colorFilter.value = new Color(0.45f, 0.65f, 1.1f);
         }
 
+        if (vignette != null)
+        {
+            vignette.smoothness.overrideState = true;
+            vignette.smoothness.value = 1f;
+            vignette.color.overrideState = true;
+            vignette.color.value = Color.black;
+        }
+
+
         playerTarget?.ActivateEagleVision();
-        
+
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
@@ -142,23 +153,23 @@ public class EagleVisionManager : MonoBehaviour
             sonarPulse.StartPulse();
     }
 
+
     void DeactivateEagleVision()
     {
         isActive = false;
         targetSaturation = 0f;
         targetVignetteIntensity = 0f;
-        targetBloomIntensity = 0f;
 
         if (colorAdjustments != null)
         {
             colorAdjustments.postExposure.value = 0f;
+            colorAdjustments.contrast.value = 0f;
             colorAdjustments.colorFilter.value = Color.white;
         }
 
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // Langsung reset semua highlight
         foreach (var item in scannedItems)
             item?.ResetToDefault();
 
@@ -174,6 +185,7 @@ public class EagleVisionManager : MonoBehaviour
 
         playerTarget?.DeactivateEagleVision();
     }
+
 
     // Method yang dipanggil oleh SonarPulseManager
     public void DetectObjectsAtRadius(Vector3 center, float radius)
