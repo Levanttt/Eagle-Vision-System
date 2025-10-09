@@ -16,19 +16,15 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private KeyCode toggleKey = KeyCode.V;
     [SerializeField] private float transitionSpeed = 5f;
 
-    [Header("Enemy Memory")]
-    [SerializeField] private int maxTrackedEnemies = 5;
-    private List<EnemyTarget> scannedEnemies = new List<EnemyTarget>();
-
-    [Header("Item Memory")]
-    [SerializeField] private int maxTrackedItems = 10;
-    private List<ItemTarget> scannedItems = new List<ItemTarget>();
+    [Header("Eagle Vision Area")]
+    [SerializeField] private float eagleVisionRadius = 30f;
+    [SerializeField] private LayerMask targetLayerMask = -1;
 
     [Header("Object Colors")]
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
     [SerializeField] private Color itemColor = new Color(3f, 3f, 0f);
     [SerializeField] private Color interactableColor = new Color(0f, 3f, 3f);
-    [SerializeField] private Color hidingSpotColor = new Color(3f, 3f, 3f); // White for hiding spots
+    [SerializeField] private Color hidingSpotColor = new Color(3f, 3f, 3f);
 
     [Header("Layer Settings")]
     [SerializeField] private string highlightLayerName = "EagleVisionHighlight";
@@ -50,6 +46,10 @@ public class EagleVisionManager : MonoBehaviour
     private float currentVignetteIntensity;
     private float targetBloomIntensity;
     private float currentBloomIntensity;
+
+    // Untuk tracking target yang sedang di-highlight
+    private HashSet<EagleVisionTarget> currentlyHighlightedTargets = new HashSet<EagleVisionTarget>();
+    private Coroutine scanCoroutine;
 
     void Start()
     {
@@ -93,6 +93,11 @@ public class EagleVisionManager : MonoBehaviour
                 ActivateEagleVision();
         }
 
+        UpdatePostProcessing();
+    }
+
+    void UpdatePostProcessing()
+    {
         if (colorAdjustments != null)
         {
             currentSaturation = Mathf.Lerp(currentSaturation, targetSaturation, Time.deltaTime * transitionSpeed);
@@ -133,11 +138,13 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
-        foreach (var enemy in scannedEnemies)
-            enemy?.Scan(enemyColor, highlightLayer);
+        // HAPUS bagian yang menyalakan scannedEnemies dan scannedItems
+        // JANGAN langsung nyalain objek dari memory sebelumnya
 
-        foreach (var item in scannedItems)
-            item?.Scan(itemColor, highlightLayer);
+        // Mulai continuous scanning - ini yang akan menyalakan objek secara bertahap
+        if (scanCoroutine != null)
+            StopCoroutine(scanCoroutine);
+        scanCoroutine = StartCoroutine(ContinuousScanRoutine());
 
         if (sonarPulse != null)
             sonarPulse.StartPulse();
@@ -159,89 +166,121 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // Langsung reset semua highlight
-        foreach (var item in scannedItems)
-            item?.ResetToDefault();
+        // Hentikan scanning
+        if (scanCoroutine != null)
+        {
+            StopCoroutine(scanCoroutine);
+            scanCoroutine = null;
+        }
 
-        foreach (var enemy in scannedEnemies)
-            enemy?.ResetToDefault();
+        // Reset semua target yang sedang di-highlight
+        ResetAllHighlightedTargets();
 
-        var interactables = FindObjectsOfType<InteractableTarget>();
-        foreach (var interactable in interactables)
-            interactable.ResetToDefault();
-
-        var hidingSpots = FindObjectsOfType<HidingTarget>();
-        foreach (var hidingSpot in hidingSpots)
-            hidingSpot.ResetToDefault();
-            
         if (sonarPulse != null)
             sonarPulse.StopPulse();
 
         playerTarget?.DeactivateEagleVision();
     }
 
-    // Method yang dipanggil oleh SonarPulseManager
-    public void DetectObjectsAtRadius(Vector3 center, float radius)
+    IEnumerator ContinuousScanRoutine()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(center, radius);
-
-        foreach (Collider col in hitColliders)
+        // Tunggu 1 frame dulu biar post processing transition mulai dulu
+        yield return null;
+        
+        while (isActive)
         {
-            if (col.CompareTag("EV_Enemy"))
-            {
-                EnemyTarget enemy = col.GetComponent<EnemyTarget>();
-                if (enemy == null)
-                    enemy = col.gameObject.AddComponent<EnemyTarget>();
-
-                if (!enemy.IsScanned)
-                {
-                    enemy.Scan(enemyColor, highlightLayer);
-                    if (!scannedEnemies.Contains(enemy))
-                    {
-                        if (scannedEnemies.Count >= maxTrackedEnemies)
-                            scannedEnemies.RemoveAt(0);
-                        scannedEnemies.Add(enemy);
-                    }
-                }
-            }
-            else if (col.CompareTag("EV_Item"))
-            {
-                ItemTarget item = col.GetComponent<ItemTarget>();
-                if (item == null)
-                    item = col.gameObject.AddComponent<ItemTarget>();
-
-                if (!item.IsScanned)
-                {
-                    item.Scan(itemColor, highlightLayer);
-                    if (!scannedItems.Contains(item))
-                    {
-                        if (scannedItems.Count >= maxTrackedItems)
-                            scannedItems.RemoveAt(0);
-                        scannedItems.Add(item);
-                    }
-                }
-            }
-            else if (col.CompareTag("EV_Interactable"))
-            {
-                InteractableTarget interactable = col.GetComponent<InteractableTarget>();
-                if (interactable == null)
-                    interactable = col.gameObject.AddComponent<InteractableTarget>();
-
-                interactable.Scan(interactableColor, highlightLayer);
-            }
-            else if (col.CompareTag("EV_HidingSpot"))
-            {
-                HidingTarget hidingSpot = col.GetComponent<HidingTarget>();
-                if (hidingSpot == null)
-                    hidingSpot = col.gameObject.AddComponent<HidingTarget>();
-
-                hidingSpot.Scan(hidingSpotColor, highlightLayer);
-            }
+            ScanAreaAroundPlayer();
+            yield return new WaitForSeconds(0.1f); // Scan setiap 0.1 detik untuk performa
         }
     }
 
-    void OnDrawGizmos()
+    void ScanAreaAroundPlayer()
     {
-        // Gizmos handled by SonarPulseManager
+        // Dapatkan semua collider dalam radius
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, eagleVisionRadius, targetLayerMask);
+        HashSet<EagleVisionTarget> currentFrameTargets = new HashSet<EagleVisionTarget>();
+
+        foreach (Collider col in hitColliders)
+        {
+            EagleVisionTarget target = GetTargetComponent(col);
+            if (target != null && !target.IsHighlighted)
+            {
+                Color targetColor = GetColorForTag(col.tag);
+                target.Scan(targetColor, highlightLayer);
+                currentlyHighlightedTargets.Add(target);
+                currentFrameTargets.Add(target);
+            }
+            else if (target != null && target.IsHighlighted)
+            {
+                currentFrameTargets.Add(target);
+            }
+        }
+
+        // Reset target yang keluar dari jangkauan
+        HashSet<EagleVisionTarget> targetsToRemove = new HashSet<EagleVisionTarget>();
+        foreach (var target in currentlyHighlightedTargets)
+        {
+            if (target == null) continue;
+            
+            if (!currentFrameTargets.Contains(target))
+            {
+                target.ResetToDefault();
+                targetsToRemove.Add(target);
+            }
+        }
+
+        // Hapus dari tracking
+        foreach (var target in targetsToRemove)
+        {
+            currentlyHighlightedTargets.Remove(target);
+        }
+    }
+
+    EagleVisionTarget GetTargetComponent(Collider collider)
+    {
+        // Cari komponen EagleVisionTarget yang sudah ada
+        EagleVisionTarget target = collider.GetComponent<EagleVisionTarget>();
+        
+        if (target == null)
+        {
+            // Cari di parent atau children
+            target = collider.GetComponentInParent<EagleVisionTarget>();
+            if (target == null)
+                target = collider.GetComponentInChildren<EagleVisionTarget>();
+        }
+
+        return target;
+    }
+
+    Color GetColorForTag(string tag)
+    {
+        switch (tag)
+        {
+            case "EV_Enemy": return enemyColor;
+            case "EV_Item": return itemColor;
+            case "EV_Interactable": return interactableColor;
+            case "EV_HidingSpot": return hidingSpotColor;
+            default: return Color.white;
+        }
+    }
+
+    void ResetAllHighlightedTargets()
+    {
+        foreach (var target in currentlyHighlightedTargets)
+        {
+            if (target != null)
+                target.ResetToDefault();
+        }
+        currentlyHighlightedTargets.Clear();
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        // Visualize eagle vision radius in scene view
+        if (isActive)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, eagleVisionRadius);
+        }
     }
 }

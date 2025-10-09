@@ -3,12 +3,11 @@ using UnityEngine;
 public class ParticleSonarManager : MonoBehaviour
 {
     [Header("Particle Prefab")]
-    [SerializeField] private GameObject sonarPrefab; // Assign prefab Vfx_TerrainScanner_tut
+    [SerializeField] private GameObject sonarPrefab;
     
     [Header("Detection Settings")]
     [SerializeField] private float maxRadius = 30f;
     [SerializeField] private float detectionSpeed = 15f;
-    [SerializeField] private LayerMask detectionLayers;
     
     private ParticleSystem sonarParticle;
     private GameObject currentSonarInstance;
@@ -27,9 +26,9 @@ public class ParticleSonarManager : MonoBehaviour
         {
             currentRadius += detectionSpeed * Time.deltaTime;
             
-            // Detect objects in current radius
-            if (eagleVisionManager != null)
-                eagleVisionManager.DetectObjectsAtRadius(transform.position, currentRadius);
+            // HAPUS pemanggilan DetectObjectsAtRadius karena sudah diganti sistem area
+            // if (eagleVisionManager != null)
+            //     eagleVisionManager.DetectObjectsAtRadius(transform.position, currentRadius);
             
             // Stop when max radius reached
             if (currentRadius >= maxRadius)
