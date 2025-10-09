@@ -8,6 +8,7 @@ TagManager:
   - EV_Item
   - EV_Enemy
   - CinemachineTarget
+  - EV_HidingSpot
   layers:
   - Default
   - TransparentFX

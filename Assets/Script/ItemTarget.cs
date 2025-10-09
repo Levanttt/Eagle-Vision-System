@@ -10,13 +10,14 @@ public class ItemTarget : EagleVisionTarget
 
     protected override void Awake()
     {
-        base.Awake();
+        base.Awake(); // PENTING: Panggil base.Awake()
         playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
     }
 
     void Update()
     {
-        if (isScanned && permanentHighlight && playerTransform != null)
+        // Hapus highlight kalau terlalu jauh
+        if (IsScanned && permanentHighlight && playerTransform != null)
         {
             float distance = Vector3.Distance(transform.position, playerTransform.position);
             if (distance > maxDistanceFromPlayer)
@@ -37,7 +38,6 @@ public class ItemTarget : EagleVisionTarget
     {
         ResetToDefault();
         permanentHighlight = false;
-        isScanned = false;
         gameObject.SetActive(false);
     }
 
@@ -45,7 +45,6 @@ public class ItemTarget : EagleVisionTarget
     {
         ResetToDefault();
         permanentHighlight = false;
-        isScanned = false;
         gameObject.SetActive(false);
     }
 }

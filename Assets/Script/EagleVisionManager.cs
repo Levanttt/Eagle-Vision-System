@@ -28,6 +28,7 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private Color enemyColor = new Color(3f, 0f, 0f);
     [SerializeField] private Color itemColor = new Color(3f, 3f, 0f);
     [SerializeField] private Color interactableColor = new Color(0f, 3f, 3f);
+    [SerializeField] private Color hidingSpotColor = new Color(3f, 3f, 3f); // White for hiding spots
 
     [Header("Layer Settings")]
     [SerializeField] private string highlightLayerName = "EagleVisionHighlight";
@@ -114,32 +115,21 @@ public class EagleVisionManager : MonoBehaviour
     void ActivateEagleVision()
     {
         isActive = true;
-        targetSaturation = -80f;
-        targetVignetteIntensity = 0.65f;
+        targetSaturation = -60f;
+        targetVignetteIntensity = vignetteIntensity;
+        targetBloomIntensity = bloomIntensity;
 
         if (colorAdjustments != null)
         {
             colorAdjustments.postExposure.overrideState = true;
-            colorAdjustments.postExposure.value = -2f;
-
-            colorAdjustments.contrast.overrideState = true;
-            colorAdjustments.contrast.value = 25f;
-
+            colorAdjustments.postExposure.value = -3f;
+            
             colorAdjustments.colorFilter.overrideState = true;
-            colorAdjustments.colorFilter.value = new Color(0.45f, 0.65f, 1.1f);
+            colorAdjustments.colorFilter.value = new Color(0.6f, 0.7f, 0.9f);
         }
-
-        if (vignette != null)
-        {
-            vignette.smoothness.overrideState = true;
-            vignette.smoothness.value = 1f;
-            vignette.color.overrideState = true;
-            vignette.color.value = Color.black;
-        }
-
 
         playerTarget?.ActivateEagleVision();
-
+        
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
@@ -153,23 +143,23 @@ public class EagleVisionManager : MonoBehaviour
             sonarPulse.StartPulse();
     }
 
-
     void DeactivateEagleVision()
     {
         isActive = false;
         targetSaturation = 0f;
         targetVignetteIntensity = 0f;
+        targetBloomIntensity = 0f;
 
         if (colorAdjustments != null)
         {
             colorAdjustments.postExposure.value = 0f;
-            colorAdjustments.contrast.value = 0f;
             colorAdjustments.colorFilter.value = Color.white;
         }
 
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
+        // Langsung reset semua highlight
         foreach (var item in scannedItems)
             item?.ResetToDefault();
 
@@ -185,7 +175,6 @@ public class EagleVisionManager : MonoBehaviour
 
         playerTarget?.DeactivateEagleVision();
     }
-
 
     // Method yang dipanggil oleh SonarPulseManager
     public void DetectObjectsAtRadius(Vector3 center, float radius)
@@ -235,6 +224,14 @@ public class EagleVisionManager : MonoBehaviour
                     interactable = col.gameObject.AddComponent<InteractableTarget>();
 
                 interactable.Scan(interactableColor, highlightLayer);
+            }
+            else if (col.CompareTag("EV_HidingSpot"))
+            {
+                InteractableTarget hidingSpot = col.GetComponent<InteractableTarget>();
+                if (hidingSpot == null)
+                    hidingSpot = col.gameObject.AddComponent<InteractableTarget>();
+
+                hidingSpot.Scan(hidingSpotColor, highlightLayer);
             }
         }
     }

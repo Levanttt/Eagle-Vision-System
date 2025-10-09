@@ -17,7 +17,7 @@ public class EnemyTarget : EagleVisionTarget
     void Update()
     {
         // Hapus highlight kalau terlalu jauh
-        if (isScanned && permanentHighlight && playerTransform != null)
+        if (IsScanned && permanentHighlight && playerTransform != null)
         {
             float distance = Vector3.Distance(transform.position, playerTransform.position);
             if (distance > maxDistanceFromPlayer)
@@ -38,7 +38,6 @@ public class EnemyTarget : EagleVisionTarget
     {
         ResetToDefault();
         permanentHighlight = false;
-        isScanned = false;
         enabled = false;
     }
 }
