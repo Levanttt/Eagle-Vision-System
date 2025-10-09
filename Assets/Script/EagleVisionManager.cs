@@ -170,6 +170,10 @@ public class EagleVisionManager : MonoBehaviour
         foreach (var interactable in interactables)
             interactable.ResetToDefault();
 
+        var hidingSpots = FindObjectsOfType<HidingTarget>();
+        foreach (var hidingSpot in hidingSpots)
+            hidingSpot.ResetToDefault();
+            
         if (sonarPulse != null)
             sonarPulse.StopPulse();
 
@@ -227,9 +231,9 @@ public class EagleVisionManager : MonoBehaviour
             }
             else if (col.CompareTag("EV_HidingSpot"))
             {
-                InteractableTarget hidingSpot = col.GetComponent<InteractableTarget>();
+                HidingTarget hidingSpot = col.GetComponent<HidingTarget>();
                 if (hidingSpot == null)
-                    hidingSpot = col.gameObject.AddComponent<InteractableTarget>();
+                    hidingSpot = col.gameObject.AddComponent<HidingTarget>();
 
                 hidingSpot.Scan(hidingSpotColor, highlightLayer);
             }

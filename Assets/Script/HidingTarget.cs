@@ -4,7 +4,7 @@ public class HidingTarget : EagleVisionTarget
 {
     [Header("Hiding Spot Settings")]
     [SerializeField] private bool canHidePlayer = true;
-    [SerializeField] private Transform hidePosition; // Posisi player saat hide
+    [SerializeField] private Transform hidePosition;
     [SerializeField] private float interactionDistance = 2f;
 
     private bool isPlayerHiding = false;
@@ -41,16 +41,11 @@ public class HidingTarget : EagleVisionTarget
 
         isPlayerHiding = true;
         
-        // Move player ke hide position
         if (hidePosition != null && playerTransform != null)
         {
             playerTransform.position = hidePosition.position;
             playerTransform.rotation = hidePosition.rotation;
         }
-
-        // TODO: Disable player visibility to enemies
-        // TODO: Play hide animation
-        // TODO: Change camera angle
 
         Debug.Log($"Player hiding in {gameObject.name}");
     }
@@ -62,14 +57,9 @@ public class HidingTarget : EagleVisionTarget
 
         isPlayerHiding = false;
 
-        // TODO: Enable player visibility
-        // TODO: Play exit animation
-        // TODO: Restore camera
-
         Debug.Log($"Player exited {gameObject.name}");
     }
 
-    // Check apakah player sedang bersembunyi
     public bool IsPlayerHiding()
     {
         return isPlayerHiding;
@@ -77,11 +67,9 @@ public class HidingTarget : EagleVisionTarget
 
     void OnDrawGizmos()
     {
-        // Draw interaction range
         Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
         Gizmos.DrawWireSphere(transform.position, interactionDistance);
 
-        // Draw hide position
         if (hidePosition != null)
         {
             Gizmos.color = Color.green;

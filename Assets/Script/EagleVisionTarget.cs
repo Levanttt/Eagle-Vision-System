@@ -5,7 +5,7 @@ public abstract class EagleVisionTarget : MonoBehaviour
 {
     [Header("Materials")]
     [SerializeField] protected Material baseMaterial;
-    [SerializeField] protected Material highlightMaterial;
+    [SerializeField] protected Material highlightMaterial; // Material dari Inspector
 
     protected bool isScanned = false;
     protected bool isHighlighted = false;
@@ -13,6 +13,7 @@ public abstract class EagleVisionTarget : MonoBehaviour
     private List<Renderer> allRenderers = new List<Renderer>();
     private Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
     private Dictionary<Renderer, int> originalLayers = new Dictionary<Renderer, int>();
+    private List<Material> createdMaterials = new List<Material>(); // Track created materials
 
     private Color currentHighlightColor;
     private int targetLayer;
@@ -88,7 +89,7 @@ public abstract class EagleVisionTarget : MonoBehaviour
     {
         if (highlightMaterial == null)
         {
-            Debug.LogWarning($"{gameObject.name}: Highlight material is null!");
+            Debug.LogError($"{gameObject.name}: Highlight Material is NULL! Please assign in Inspector.");
             return;
         }
 
@@ -99,7 +100,15 @@ public abstract class EagleVisionTarget : MonoBehaviour
             // Create instance untuk setiap renderer
             Material highlightInstance = new Material(highlightMaterial);
             highlightInstance.SetColor("_BaseColor", currentHighlightColor);
-            highlightInstance.SetColor("_EmissionColor", currentHighlightColor);
+            
+            // Coba set emission juga (kalau shader support)
+            if (highlightInstance.HasProperty("_EmissionColor"))
+            {
+                highlightInstance.SetColor("_EmissionColor", currentHighlightColor);
+            }
+
+            // Track material yang dibuat untuk cleanup nanti
+            createdMaterials.Add(highlightInstance);
 
             // Replace SEMUA materials dengan highlight material
             Material[] newMaterials = new Material[renderer.sharedMaterials.Length];
@@ -136,10 +145,24 @@ public abstract class EagleVisionTarget : MonoBehaviour
                 renderer.gameObject.layer = originalLayers[renderer];
             }
         }
+
+        // Cleanup created materials
+        foreach (var mat in createdMaterials)
+        {
+            if (mat != null)
+                Destroy(mat);
+        }
+        createdMaterials.Clear();
     }
 
     protected virtual void OnDestroy()
     {
-        ResetToDefault();
+        // Cleanup saat object destroyed
+        foreach (var mat in createdMaterials)
+        {
+            if (mat != null)
+                Destroy(mat);
+        }
+        createdMaterials.Clear();
     }
 }
