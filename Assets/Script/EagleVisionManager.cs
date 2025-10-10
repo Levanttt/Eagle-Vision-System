@@ -26,15 +26,21 @@ public class EagleVisionManager : MonoBehaviour
     [SerializeField] private Color interactableColor = new Color(0f, 3f, 3f);
     [SerializeField] private Color hidingSpotColor = new Color(3f, 3f, 3f);
 
+    [Header("Sound Effects - AC Style")]
+    [SerializeField] private AudioClip eagleVisionActivateSound;  
+    [SerializeField] private AudioClip eagleVisionDeactivateSound; 
+    private AudioSource audioSource;
+
     [Header("Layer Settings")]
     [SerializeField] private string highlightLayerName = "EagleVisionHighlight";
     private int highlightLayer;
 
     [Header("Visual Polish")]
-    [SerializeField] private float vignetteIntensity = 0.45f;
-    [SerializeField] private float bloomIntensity = 5f;
+    [SerializeField] private float vignetteIntensity = 0.20f;
+    [SerializeField] private float bloomIntensity = 1.5f; // DIKURANGI: dari 5f jadi 1.5f (sangat subtle)
 
     private bool isActive;
+    private bool initialPulseCompleted = false;
 
     private ColorAdjustments colorAdjustments;
     private Vignette vignette;
@@ -46,8 +52,6 @@ public class EagleVisionManager : MonoBehaviour
     private float currentVignetteIntensity;
     private float targetBloomIntensity;
     private float currentBloomIntensity;
-
-    // Untuk tracking target yang sedang di-highlight
     private HashSet<EagleVisionTarget> currentlyHighlightedTargets = new HashSet<EagleVisionTarget>();
     private Coroutine scanCoroutine;
 
@@ -56,6 +60,11 @@ public class EagleVisionManager : MonoBehaviour
         highlightLayer = LayerMask.NameToLayer(highlightLayerName);
         if (highlightLayer == -1)
             Debug.LogError($"Layer '{highlightLayerName}' not found!");
+
+        // Setup AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
 
         if (postProcessVolume != null)
         {
@@ -75,6 +84,10 @@ public class EagleVisionManager : MonoBehaviour
             {
                 bloom.intensity.overrideState = true;
                 bloom.intensity.value = 0f;
+                
+                // Optional: Atur threshold bloom agar lebih subtle
+                bloom.threshold.overrideState = true;
+                bloom.threshold.value = 0.8f; // Hanya area yang terang sekali yang bloom
             }
         }
 
@@ -84,7 +97,6 @@ public class EagleVisionManager : MonoBehaviour
 
     void Update()
     {
-        // Toggle on/off dengan tombol yang sama
         if (Input.GetKeyDown(toggleKey))
         {
             if (isActive)
@@ -94,6 +106,11 @@ public class EagleVisionManager : MonoBehaviour
         }
 
         UpdatePostProcessing();
+
+        if (isActive && sonarPulse != null && !sonarPulse.IsScanning && !initialPulseCompleted)
+        {
+            initialPulseCompleted = true;
+        }
     }
 
     void UpdatePostProcessing()
@@ -120,9 +137,15 @@ public class EagleVisionManager : MonoBehaviour
     void ActivateEagleVision()
     {
         isActive = true;
+        initialPulseCompleted = false;
         targetSaturation = -60f;
         targetVignetteIntensity = vignetteIntensity;
-        targetBloomIntensity = bloomIntensity;
+        targetBloomIntensity = bloomIntensity; // 1.5f - sangat subtle
+
+        if (eagleVisionActivateSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(eagleVisionActivateSound);
+        }
 
         if (colorAdjustments != null)
         {
@@ -138,10 +161,6 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = true;
 
-        // HAPUS bagian yang menyalakan scannedEnemies dan scannedItems
-        // JANGAN langsung nyalain objek dari memory sebelumnya
-
-        // Mulai continuous scanning - ini yang akan menyalakan objek secara bertahap
         if (scanCoroutine != null)
             StopCoroutine(scanCoroutine);
         scanCoroutine = StartCoroutine(ContinuousScanRoutine());
@@ -153,9 +172,15 @@ public class EagleVisionManager : MonoBehaviour
     void DeactivateEagleVision()
     {
         isActive = false;
+        initialPulseCompleted = false;
         targetSaturation = 0f;
         targetVignetteIntensity = 0f;
-        targetBloomIntensity = 0f;
+        targetBloomIntensity = 0f; // Bloom mati
+
+        if (eagleVisionDeactivateSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(eagleVisionDeactivateSound);
+        }
 
         if (colorAdjustments != null)
         {
@@ -166,14 +191,12 @@ public class EagleVisionManager : MonoBehaviour
         if (highlightCamera != null)
             highlightCamera.enabled = false;
 
-        // Hentikan scanning
         if (scanCoroutine != null)
         {
             StopCoroutine(scanCoroutine);
             scanCoroutine = null;
         }
 
-        // Reset semua target yang sedang di-highlight
         ResetAllHighlightedTargets();
 
         if (sonarPulse != null)
@@ -184,19 +207,17 @@ public class EagleVisionManager : MonoBehaviour
 
     IEnumerator ContinuousScanRoutine()
     {
-        // Tunggu 1 frame dulu biar post processing transition mulai dulu
         yield return null;
         
         while (isActive)
         {
             ScanAreaAroundPlayer();
-            yield return new WaitForSeconds(0.1f); // Scan setiap 0.1 detik untuk performa
+            yield return new WaitForSeconds(0.1f);
         }
     }
 
     void ScanAreaAroundPlayer()
     {
-        // Dapatkan semua collider dalam radius
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, eagleVisionRadius, targetLayerMask);
         HashSet<EagleVisionTarget> currentFrameTargets = new HashSet<EagleVisionTarget>();
 
@@ -205,10 +226,28 @@ public class EagleVisionManager : MonoBehaviour
             EagleVisionTarget target = GetTargetComponent(col);
             if (target != null && !target.IsHighlighted)
             {
-                Color targetColor = GetColorForTag(col.tag);
-                target.Scan(targetColor, highlightLayer);
-                currentlyHighlightedTargets.Add(target);
-                currentFrameTargets.Add(target);
+                bool shouldHighlight = false;
+
+                if (sonarPulse != null && sonarPulse.IsScanning)
+                {
+                    if (sonarPulse.IsObjectInCurrentPulseRange(col.transform.position))
+                    {
+                        shouldHighlight = true;
+                    }
+                }
+
+                else if (initialPulseCompleted)
+                {
+                    shouldHighlight = true;
+                }
+
+                if (shouldHighlight)
+                {
+                    Color targetColor = GetColorForTag(col.tag);
+                    target.Scan(targetColor, highlightLayer);
+                    currentlyHighlightedTargets.Add(target);
+                    currentFrameTargets.Add(target);
+                }
             }
             else if (target != null && target.IsHighlighted)
             {
@@ -216,34 +255,39 @@ public class EagleVisionManager : MonoBehaviour
             }
         }
 
-        // Reset target yang keluar dari jangkauan
-        HashSet<EagleVisionTarget> targetsToRemove = new HashSet<EagleVisionTarget>();
-        foreach (var target in currentlyHighlightedTargets)
+        if (initialPulseCompleted)
         {
-            if (target == null) continue;
-            
-            if (!currentFrameTargets.Contains(target))
+            HashSet<EagleVisionTarget> targetsToRemove = new HashSet<EagleVisionTarget>();
+            foreach (var target in currentlyHighlightedTargets)
             {
-                target.ResetToDefault();
-                targetsToRemove.Add(target);
+                if (target == null) continue;
+                
+                if (!IsObjectInEagleVisionArea(target.transform.position))
+                {
+                    target.ResetToDefault();
+                    targetsToRemove.Add(target);
+                }
+            }
+
+            foreach (var target in targetsToRemove)
+            {
+                currentlyHighlightedTargets.Remove(target);
             }
         }
+    }
 
-        // Hapus dari tracking
-        foreach (var target in targetsToRemove)
-        {
-            currentlyHighlightedTargets.Remove(target);
-        }
+    bool IsObjectInEagleVisionArea(Vector3 objectPosition)
+    {
+        float distance = Vector3.Distance(transform.position, objectPosition);
+        return distance <= eagleVisionRadius;
     }
 
     EagleVisionTarget GetTargetComponent(Collider collider)
     {
-        // Cari komponen EagleVisionTarget yang sudah ada
         EagleVisionTarget target = collider.GetComponent<EagleVisionTarget>();
         
         if (target == null)
         {
-            // Cari di parent atau children
             target = collider.GetComponentInParent<EagleVisionTarget>();
             if (target == null)
                 target = collider.GetComponentInChildren<EagleVisionTarget>();
@@ -276,11 +320,7 @@ public class EagleVisionManager : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        // Visualize eagle vision radius in scene view
-        if (isActive)
-        {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(transform.position, eagleVisionRadius);
-        }
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, eagleVisionRadius);
     }
 }

@@ -5,7 +5,7 @@ public abstract class EagleVisionTarget : MonoBehaviour
 {
     [Header("Materials")]
     [SerializeField] protected Material baseMaterial;
-    [SerializeField] protected Material highlightMaterial; // Material dari Inspector
+    [SerializeField] protected Material highlightMaterial;
 
     protected bool isScanned = false;
     protected bool isHighlighted = false;
@@ -13,7 +13,7 @@ public abstract class EagleVisionTarget : MonoBehaviour
     private List<Renderer> allRenderers = new List<Renderer>();
     private Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
     private Dictionary<Renderer, int> originalLayers = new Dictionary<Renderer, int>();
-    private List<Material> createdMaterials = new List<Material>(); // Track created materials
+    private List<Material> createdMaterials = new List<Material>();
 
     private Color currentHighlightColor;
     private int targetLayer;
@@ -46,8 +46,6 @@ public abstract class EagleVisionTarget : MonoBehaviour
             if (!allRenderers.Contains(renderer))
                 allRenderers.Add(renderer);
         }
-
-        Debug.Log($"{gameObject.name}: Found {allRenderers.Count} renderers");
     }
 
     void SaveOriginalMaterials()
@@ -83,6 +81,8 @@ public abstract class EagleVisionTarget : MonoBehaviour
         targetLayer = highlightLayer;
 
         ApplyHighlight();
+        
+        // TIDAK ADA SOUND EFFECT - Sesuai style Assassin's Creed
     }
 
     void ApplyHighlight()
@@ -128,6 +128,8 @@ public abstract class EagleVisionTarget : MonoBehaviour
         if (!isHighlighted) return;
 
         isHighlighted = false;
+
+        // TIDAK ADA SOUND EFFECT - Sesuai style Assassin's Creed
 
         foreach (var renderer in allRenderers)
         {

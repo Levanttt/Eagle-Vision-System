@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class ParticleSonarManager : MonoBehaviour
 {
@@ -15,6 +16,13 @@ public class ParticleSonarManager : MonoBehaviour
     private bool isScanning;
     private EagleVisionManager eagleVisionManager;
 
+    // Public property untuk akses current radius
+    public float CurrentRadius => currentRadius;
+    public bool IsScanning => isScanning;
+
+    // Event untuk notify ketika pulse selesai
+    public event Action OnPulseComplete;
+
     void Start()
     {
         eagleVisionManager = GetComponent<EagleVisionManager>();
@@ -24,19 +32,28 @@ public class ParticleSonarManager : MonoBehaviour
     {
         if (isScanning)
         {
+            float previousRadius = currentRadius;
             currentRadius += detectionSpeed * Time.deltaTime;
-            
-            // HAPUS pemanggilan DetectObjectsAtRadius karena sudah diganti sistem area
-            // if (eagleVisionManager != null)
-            //     eagleVisionManager.DetectObjectsAtRadius(transform.position, currentRadius);
             
             // Stop when max radius reached
             if (currentRadius >= maxRadius)
             {
                 isScanning = false;
                 currentRadius = 0f;
+                
+                // Trigger event ketika pulse selesai
+                OnPulseComplete?.Invoke();
             }
         }
+    }
+
+    // Method untuk cek apakah objek dalam range pulse current
+    public bool IsObjectInCurrentPulseRange(Vector3 objectPosition)
+    {
+        if (!isScanning) return false;
+        
+        float distance = Vector3.Distance(transform.position, objectPosition);
+        return distance <= currentRadius;
     }
 
     public void StartPulse()
