@@ -3757,7 +3757,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sonarPrefab: {fileID: 1850274411892124627, guid: 094f5caa7780cdd43a269e03929c08f3,
     type: 3}
-  maxRadius: 20
+  maxRadius: 30
   detectionSpeed: 30
 --- !u!1 &832575517
 GameObject:
